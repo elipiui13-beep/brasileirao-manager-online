@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const MP={code:null,token:null,index:0,version:0,liveVersion:0,host:false,poll:null,applying:false,online:false,players:[],allReady:false,lastLivePush:0,installed:false};
+const MP={code:null,token:null,index:0,version:0,liveVersion:0,host:false,poll:null,applying:false,online:false,players:[],allReady:false,lastLivePush:0,installed:false,remoteEventKeys:new Set(),remoteLiveActive:false};
 const api=(path,opt={})=>fetch(path,{...opt,headers:{'Content-Type':'application/json',...(MP.token?{'X-Player-Token':MP.token}:{}),...(opt.headers||{})}}).then(async r=>{const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Falha de conexão');return j});
 function cTeams(){return (typeof DB!=='undefined'?DB:[]).filter(t=>t.division==='C')}
 function randomItem(a){return a[Math.floor(Math.random()*a.length)]}
@@ -19,7 +19,7 @@ function overlay(){
   #mpTop .mp-summary{background:#0c1729;border:1px solid #4a76bd;border-radius:11px;padding:6px 9px;box-shadow:0 5px 14px #0004}
   #mpTop .mp-room{font-size:11px;opacity:.8}.mp-status{display:flex;flex-direction:column;align-items:flex-start;gap:4px;margin-top:5px;font-size:12px}.mp-status-line{display:block}.mp-ok{color:#79e89a;font-weight:800}.mp-wait{color:#ffd36b;font-weight:800}
   #mpTop .mp-actions{display:flex;gap:6px;align-items:center}#mpTop button{border:0;border-radius:9px;cursor:pointer;font-weight:900;min-height:34px;padding:7px 11px}
-  .mp-inline-actions{display:inline-flex;gap:10px;align-items:center;flex-wrap:wrap}.mp-inline-ready{border:0;border-radius:12px;cursor:pointer;font-weight:900;min-height:44px;padding:10px 16px;background:var(--g,#4ade80)!important;color:#04200e!important;box-shadow:0 6px 18px #1f7a4b55;font-size:15px;line-height:1}.mp-inline-ready.ready{background:var(--g,#4ade80)!important;color:#04200e!important;filter:saturate(1.02)}.mp-inline-ready:hover{filter:brightness(1.03)}
+  .mp-inline-actions{display:inline-flex;flex-direction:column;gap:8px;align-items:stretch;flex-wrap:nowrap}.mp-inline-actions>button{width:100%}.mp-inline-ready{border:0;border-radius:12px;cursor:pointer;font-weight:900;min-height:44px;padding:10px 16px;background:var(--g,#4ade80)!important;color:#04200e!important;box-shadow:0 6px 18px #1f7a4b55;font-size:15px;line-height:1}.mp-inline-ready.ready{background:var(--g,#4ade80)!important;color:#04200e!important;filter:saturate(1.02)}.mp-inline-ready:hover{filter:brightness(1.03)}
   #mpCopyBtn{background:#344967;color:#fff}.mp-live-badge{display:inline-flex;align-items:center;gap:7px;background:#9c1d2c;color:#fff;border-radius:999px;padding:4px 8px;font-weight:900;font-size:11px;animation:mpPulse 1.2s infinite}
   @keyframes mpPulse{50%{opacity:.65}}@media(max-width:760px){#mpLobby .row{grid-template-columns:1fr}main#game header{align-items:flex-start;flex-wrap:wrap}#mpTop{width:100%;justify-content:flex-start}#mpTop .mp-summary{width:100%}.mp-inline-actions{width:100%}.mp-inline-ready{flex:1}}
   </style><div class="box"><h1>🌐 Brasileirão Manager Online</h1><p class="muted">Crie uma carreira ou entre usando o código enviado pelo seu amigo.</p><div class="row"><section><h2>Criar sala</h2><input id="mpCreateName" placeholder="Seu nome"><div class="muted" style="margin:4px 0 14px">Seu clube será sorteado aleatoriamente entre os times da Série C.</div><button id="mpCreate">Criar carreira online</button></section><section><h2>Entrar na sala</h2><input id="mpCode" maxlength="6" placeholder="Código da sala"><input id="mpJoinName" placeholder="Seu nome"><div class="muted" style="margin:4px 0 14px">Você receberá outro clube aleatório da Série C.</div><button id="mpJoin">Entrar na carreira</button></section></div><p id="mpMsg" class="err"></p><hr><button id="mpSolo" style="background:#47556d">Continuar no modo individual</button></div>`;document.body.appendChild(el);
@@ -29,11 +29,46 @@ function msg(x){const e=document.getElementById('mpMsg');if(e)e.textContent=x||'
 async function createRoom(){try{msg('Criando sala...');const name=document.getElementById('mpCreateName').value.trim()||'Técnico 1';const chosen=buildState(name);const r=await api('/api/rooms/create',{method:'POST',body:JSON.stringify({name,teamId:chosen.id,state:S})});enter(r,true);document.getElementById('mpLobby')?.remove();saveLocal();openGame();setTimeout(drawBar,0);alert(`Sala criada!\nSeu time: ${chosen.name}\nCódigo: ${r.code}\nEnvie esse código ao seu amigo.`)}catch(e){msg(e.message)}}
 async function joinRoom(){try{msg('Entrando...');const code=document.getElementById('mpCode').value.trim().toUpperCase(),name=document.getElementById('mpJoinName').value.trim()||'Técnico 2';const r=await api(`/api/rooms/${code}/join`,{method:'POST',body:JSON.stringify({name})});enter(r,false);document.getElementById('mpLobby')?.remove();applyRoom(r.room,true);saveLocal();openGame();setTimeout(drawBar,0);alert(`Você entrou na sala ${code}.\nSeu time: ${team(manager().team).name}`)}catch(e){msg(e.message)}}
 function enter(r,host){MP.code=r.code;MP.token=r.token;MP.index=r.managerIndex;MP.host=host;MP.online=true;sessionStorage.setItem('bm_mp',JSON.stringify({code:MP.code,token:MP.token,index:MP.index,host}));applyRoom(r.room,true);install();startPoll()}
+function remoteEventKey(e){return `${e.min}|${e.type}|${e.teamId}|${e.division||''}|${e.text||''}`}
+function playRemoteEventSounds(snapshot,previousKeys){
+  if(typeof playSound!=='function')return;
+  const mine=manager()?.team,opp=typeof currentOpponentId==='function'?currentOpponentId():null;
+  const fresh=(snapshot.events||[]).filter(e=>!previousKeys.has(remoteEventKey(e))).reverse();
+  fresh.forEach(e=>{
+    if(e.teamId!==mine&&e.teamId!==opp)return;
+    const own=e.teamId===mine,text=e.text||'';
+    if(e.type==='goal')playSound('goal',own);
+    else if(e.type==='penalty')playSound(text.includes('converte')?'goal':'penalty',own);
+    else if(e.type==='redcard')playSound('red');
+    else if(e.type==='cardev')playSound('yellow');
+    else if(e.type==='injury')playSound('injury');
+    else if(e.type==='save')playSound('save');
+    else if(e.type==='chance')playSound('chance');
+  });
+}
 function applyLiveSnapshot(snapshot){
   if(MP.host)return;
-  if(!snapshot){if(live&&live._remote){live=null;const active=document.querySelector('nav button.active')?.dataset.v;if(active==='gameplay')render('gameplay')}return}
-  const wasActive=!!(live&&live.active),oldMinute=live&&live.minute;
+  const previousKeys=new Set(MP.remoteEventKeys),wasActive=MP.remoteLiveActive;
+  if(!snapshot){
+    if(wasActive){if(typeof playSound==='function')playSound('whistleEnd');if(typeof stopCrowd==='function')stopCrowd()}
+    MP.remoteLiveActive=false;MP.remoteEventKeys.clear();
+    if(live&&live._remote){live=null;const active=document.querySelector('nav button.active')?.dataset.v;if(active==='gameplay')render('gameplay')}
+    return;
+  }
+  const oldMinute=live&&live.minute;
   live={...snapshot,_remote:true,timer:null};
+  MP.remoteLiveActive=!!snapshot.active;
+  if(snapshot.active&&!wasActive){
+    if(typeof ensureAudio==='function')ensureAudio();
+    if(typeof playSound==='function')playSound('whistleStart');
+    if(typeof startCrowd==='function')startCrowd();
+  }
+  playRemoteEventSounds(snapshot,previousKeys);
+  MP.remoteEventKeys=new Set((snapshot.events||[]).map(remoteEventKey));
+  if(!snapshot.active&&wasActive){
+    if(typeof playSound==='function')playSound('whistleEnd');
+    if(typeof stopCrowd==='function')stopCrowd();
+  }
   const nav=document.querySelector('nav button.active')?.dataset.v;
   if(snapshot.active&&!wasActive){setActiveNav('gameplay');render('gameplay')}
   else if(nav==='gameplay'&&oldMinute!==snapshot.minute){gameplay(gameplayDivision||team(manager().team)?.division||'C')}
@@ -80,7 +115,7 @@ function install(){
   const oldPause=window.toggleLivePause;window.toggleLivePause=function(){if(MP.online&&!MP.host)return alert('Somente o anfitrião controla a pausa.');oldPause();pushLive(true)};
   const oldSpeed=window.changeLiveSpeed;window.changeLiveSpeed=function(){if(MP.online&&!MP.host)return alert('Somente o anfitrião controla a velocidade.');oldSpeed();pushLive(true)};
   const oldFinish=window.finishRound;window.finishRound=function(){oldFinish();if(MP.online){pushLive(true);api(`/api/rooms/${MP.code}/ready`,{method:'POST',body:JSON.stringify({ready:false})}).catch(()=>{});setTimeout(()=>{pushState();pushLive(true)},300)}};
-  window.mpToggleReady=async function(){try{const me=MP.players.find(p=>p.managerIndex===MP.index),r=await api(`/api/rooms/${MP.code}/ready`,{method:'POST',body:JSON.stringify({ready:!(me&&me.ready)})});applyRoom(r.room)}catch(e){alert(e.message)}};
+  window.mpToggleReady=async function(){try{if(typeof ensureAudio==='function')ensureAudio();const me=MP.players.find(p=>p.managerIndex===MP.index),r=await api(`/api/rooms/${MP.code}/ready`,{method:'POST',body:JSON.stringify({ready:!(me&&me.ready)})});applyRoom(r.room)}catch(e){alert(e.message)}};
   window.mpCopyCode=()=>navigator.clipboard?.writeText(MP.code).then(()=>alert('Código copiado: '+MP.code)).catch(()=>prompt('Copie o código:',MP.code));
   const observer=new MutationObserver(()=>enhanceGameButtons());observer.observe(document.body,{childList:true,subtree:true});setTimeout(enhanceGameButtons,0);
 }
