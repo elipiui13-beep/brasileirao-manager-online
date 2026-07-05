@@ -117,7 +117,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:8px;borde
 </div>
 <p class="muted" style="font-size:12px">O clube inicial é sorteado automaticamente entre os participantes da Série C.</p>
 </section>
-<main id="game" class="hidden"><header><div><h1>⚽ Brasileirão Manager</h1><div class="muted">Modo carreira nacional • escudos locais</div></div><div id="seasonBadge" class="badge"></div></header>
+<main id="game" class="hidden"><header><div><h1>⚽ Brasileirão Manager</h1><div class="muted">Modo carreira nacional • escudos em cache local</div></div><div id="seasonBadge" class="badge"></div></header>
 <div id="turn" class="turn"></div><nav>
 <button class="btn active" data-v="home">Início</button><button class="btn" data-v="gameplay">Jogo</button><button class="btn" data-v="squad">Elenco</button><button class="btn" data-v="opponents">Adversários</button><button class="btn" data-v="market">Mercado</button><button class="btn" data-v="board">Diretoria</button><button class="btn" data-v="academy">Base</button><button class="btn" data-v="stats">Estatísticas</button><button class="btn" data-v="table">Tabelas</button><button class="btn" data-v="fixtures">Rodadas</button><button class="btn" data-v="news">Notícias</button>
 </nav><section id="content"></section></main></div>
@@ -198,7 +198,20 @@ applyDataCorrections();let S=null,live=null;const $=x=>document.getElementById(x
 const fmt=v=>v.toLocaleString("pt-BR",{style:"currency",currency:"BRL",maximumFractionDigits:0});
 function crest(t){
  return `<span class="crest" title="${t.name}"><img src="${t.logo||shieldSVG(t)}" alt="Escudo ${t.name}"></span>`
-}function team(id){return S.teams.find(x=>x.id===id)}function manager(){return S.managers[S.turn]}
+}
+const LOCAL_CREST_OVERRIDES={};
+function applyCrestMap(map){
+ Object.assign(LOCAL_CREST_OVERRIDES,map||{});
+ DB.forEach(t=>{if(LOCAL_CREST_OVERRIDES[t.name])t.logo=LOCAL_CREST_OVERRIDES[t.name]});
+ if(window.S&&S.teams)S.teams.forEach(t=>{if(LOCAL_CREST_OVERRIDES[t.name])t.logo=LOCAL_CREST_OVERRIDES[t.name]});
+ const active=document.querySelector('nav button.active');
+ if(active){try{render(active.dataset.v)}catch(e){}}
+}
+async function loadEmbeddedCrests(){
+ try{const r=await fetch('assets/crests/manifest.json',{cache:'no-store'}); if(r.ok){const map=await r.json(); if(map&&Object.keys(map).length)applyCrestMap(map);}}catch(e){}
+ try{const r=await fetch('/api/crests',{cache:'no-store'}); if(r.ok){const j=await r.json(); if(j&&j.map&&Object.keys(j.map).length)applyCrestMap(j.map);}}catch(e){}
+}
+function team(id){return S.teams.find(x=>x.id===id)}function manager(){return S.managers[S.turn]}
 function marketBaseValue(p,division="A"){
  let base=Math.pow(Math.max(1,p.rating-54),2.55)*18000;
  let age=p.age||25,ageFactor=age<=21?1.42:age<=24?1.25:age<=27?1.08:age<=30?.92:age<=33?.68:age<=36?.42:.25;
@@ -224,7 +237,7 @@ function newGame(){
    offers:[],marketModelVersion:2,finished:false
  };
  S.schedules=buildSchedules();
- save();openGame();
+ save();openGame();setTimeout(loadEmbeddedCrests,10);
  alert(`Seu primeiro clube é o ${chosen.name}, da Série C. Boa sorte!`);
 }
 let memorySave=null;
@@ -233,7 +246,7 @@ function storageGet(key){try{return localStorage.getItem(key)}catch(e){return ke
 function save(){storageSet("brCareerV12",JSON.stringify(S))}
 function migratePlayer(p,t){if(p.assists==null)p.assists=0;if(p.appearances==null)p.appearances=0;if(p.form==null)p.form=6.5;if(p.valueTrend==null)p.valueTrend=0;if(p.playInjured==null)p.playInjured=false;if(p.fitness==null)p.fitness=100;if(p.lastPower==null)p.lastPower=p.rating;if(typeof p.injured==="number"&&p.injured>0&&!p.injury)p.injury={type:"Desconforto muscular",gamesLeft:p.injured,risk:.18,penalty:3};if(!p.injury)p.injured=0}
 function loadGame(){let x=storageGet("brCareerV12")||storageGet("brCareerV11")||storageGet("brCareerV10")||storageGet("brCareerV9")||storageGet("brCareerV7");if(!x)return alert("Nenhuma carreira salva.");S=JSON.parse(x);S.teams.forEach(t=>{let src=DB.find(d=>d.name===t.name);if(src)t.logo=src.logo;if(!t.formation)t.formation="4-3-3";if(!t.tactic)t.tactic="Equilibrada";if(!t.stadium)t.stadium={level:1,capacity:t.division==="A"?30000:t.division==="B"?20000:12000,lastAttendance:0,lastRevenue:0,totalRevenue:0};t.players.forEach(p=>migratePlayer(p,t));});if(!S.marketModelVersion){S.teams.forEach(t=>t.players.forEach(p=>p.value=normalizedValue(p,t.division)));S.marketModelVersion=2}if(!S.globalMarket)S.globalMarket=WORLD.map(p=>({...p,bought:false}));openGame()}
-function openGame(){$("setup").classList.add("hidden");$("game").classList.remove("hidden");document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"));b.classList.add("active");render(b.dataset.v)});render("home")}
+function openGame(){$("setup").classList.add("hidden");$("game").classList.remove("hidden");document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"));b.classList.add("active");render(b.dataset.v)});render("home");setTimeout(loadEmbeddedCrests,10)}
 function standings(d){return S.teams.filter(t=>t.division===d).sort((a,b)=>b.pts-a.pts||b.w-a.w||(b.gf-b.ga)-(a.gf-a.ga)||b.gf-a.gf)}function pos(t){return standings(t.division).findIndex(x=>x.id===t.id)+1}
 const FORMATIONS={"4-3-3":{GOL:1,ZAG:2,LD:1,LE:1,VOL:1,MC:1,MEI:1,PD:1,PE:1,ATA:1},"4-4-2":{GOL:1,ZAG:2,LD:1,LE:1,VOL:1,MC:2,MEI:1,ATA:2},"4-2-3-1":{GOL:1,ZAG:2,LD:1,LE:1,VOL:2,MEI:1,PD:1,PE:1,ATA:1},"3-5-2":{GOL:1,ZAG:3,LD:1,LE:1,VOL:1,MC:1,MEI:1,ATA:2},"5-3-2":{GOL:1,ZAG:3,LD:1,LE:1,VOL:1,MC:1,MEI:1,ATA:2}};
 const TACTICS={"Equilibrada":{atk:1,def:1,card:1},"Ofensiva":{atk:1.18,def:.88,card:1.08},"Defensiva":{atk:.82,def:1.18,card:.9},"Contra-ataque":{atk:1.08,def:1.08,card:1},"Pressão alta":{atk:1.12,def:.95,card:1.22},"Posse de bola":{atk:1.04,def:1.04,card:.92}};
@@ -314,13 +327,13 @@ function market(){
  <select id="qPos" onchange="marketPage=0;drawGlobalMarket()"><option value="">Todas posições</option>${["GOL","LD","LE","ZAG","VOL","MC","MEI","PD","PE","ATA"].map(x=>`<option>${x}</option>`).join("")}</select>
  <select id="qValue" onchange="marketPage=0;drawGlobalMarket()"><option value="">Qualquer valor</option><option value="25">Até R$ 25 mi</option><option value="50">Até R$ 50 mi</option><option value="100">Até R$ 100 mi</option><option value="200">Até R$ 200 mi</option></select>
  <select id="qRating" onchange="marketPage=0;drawGlobalMarket()"><option value="">Qualquer nível</option><option value="70">70+</option><option value="75">75+</option><option value="80">80+</option><option value="85">85+</option></select></div><div id="globalResults"></div></div>
- <div class="card"><h3>Suas vendas</h3>${listed.map(p=>`<p><b>${p.name}</b> — ${fmt(p.value)} <button class="btn small" onclick="sellNow('${p.id}')">Aceitar proposta da IA</button></p>`).join("")||"<p class='muted'>Nenhum jogador anunciado.</p>"}</div>`;
+ <div class="card"><h3>Suas vendas</h3>${listed.map(p=>`<p><b class="clickable" onclick="playerModal('${p.id}')">${p.name}</b> — ${fmt(p.value)} <button class="btn small" onclick="sellNow('${p.id}')">Aceitar proposta da IA</button></p>`).join("")||"<p class='muted'>Nenhum jogador anunciado.</p>"}</div>`;
  drawNationalMarket();drawGlobalMarket();
 }
 function filteredNational(){let q=($("nqPlayer")?.value||"").toLowerCase(),div=$("nqDivision")?.value||"",pos=$("nqPos")?.value||"",val=+($("nqValue")?.value||0)*1e6,rat=+($("nqRating")?.value||0);return marketPlayers().filter(x=>(!q||(x.p.name+" "+x.owner.name).toLowerCase().includes(q))&&(!div||x.owner.division===div)&&(!pos||x.p.pos===pos)&&(!val||x.p.value<=val)&&(!rat||x.p.rating>=rat)).sort((a,b)=>b.p.rating-a.p.rating||a.p.value-b.p.value)}
-function drawNationalMarket(){let arr=filteredNational(),per=40,pages=Math.max(1,Math.ceil(arr.length/per));if(nationalMarketPage>=pages)nationalMarketPage=pages-1;let page=arr.slice(nationalMarketPage*per,(nationalMarketPage+1)*per);$("nationalResults").innerHTML=`<p class="muted">${arr.length.toLocaleString("pt-BR")} jogador(es) nacional(is)</p>${page.map(x=>`<div class="player"><div>${crest(x.owner)}<b>${x.p.name}</b><br><span class="muted">${x.owner.name} • Série ${x.owner.division} • ${x.p.age} anos</span></div><span class="pill">${x.p.pos}</span><b>${x.p.rating}</b><span class="hideMob">${fmt(x.p.value)}</span><button class="btn small primary" onclick="buy('${x.p.id}',${x.owner.id})">Comprar</button></div>`).join("")||"<p>Nenhum jogador encontrado.</p>"}<div class="pager"><button class="btn small" onclick="nationalMarketPage=Math.max(0,nationalMarketPage-1);drawNationalMarket()">Anterior</button><b>${nationalMarketPage+1}/${pages}</b><button class="btn small" onclick="nationalMarketPage=Math.min(${pages-1},nationalMarketPage+1);drawNationalMarket()">Próxima</button></div>`}
+function drawNationalMarket(){let arr=filteredNational(),per=40,pages=Math.max(1,Math.ceil(arr.length/per));if(nationalMarketPage>=pages)nationalMarketPage=pages-1;let page=arr.slice(nationalMarketPage*per,(nationalMarketPage+1)*per);$("nationalResults").innerHTML=`<p class="muted">${arr.length.toLocaleString("pt-BR")} jogador(es) nacional(is)</p>${page.map(x=>`<div class="player"><div>${crest(x.owner)}<b class="clickable" onclick="playerModal('${x.p.id}')">${x.p.name}</b><br><span class="muted">${x.owner.name} • Série ${x.owner.division} • ${x.p.age} anos</span></div><span class="pill">${x.p.pos}</span><b>${x.p.rating}</b><span class="hideMob">${fmt(x.p.value)}</span><button class="btn small primary" onclick="buy('${x.p.id}',${x.owner.id})">Comprar</button></div>`).join("")||"<p>Nenhum jogador encontrado.</p>"}<div class="pager"><button class="btn small" onclick="nationalMarketPage=Math.max(0,nationalMarketPage-1);drawNationalMarket()">Anterior</button><b>${nationalMarketPage+1}/${pages}</b><button class="btn small" onclick="nationalMarketPage=Math.min(${pages-1},nationalMarketPage+1);drawNationalMarket()">Próxima</button></div>`;setTimeout(()=>window.makeAllPlayerNamesClickable&&makeAllPlayerNamesClickable(),0)}
 function filteredWorld(){let q=($("qPlayer")?.value||"").toLowerCase(),lg=$("qLeague")?.value||"",pos=$("qPos")?.value||"",val=+($("qValue")?.value||0)*1e6,rat=+($("qRating")?.value||0);return S.globalMarket.filter(p=>!p.bought&&(!q||(p.name+" "+p.club).toLowerCase().includes(q))&&(!lg||p.league===lg)&&(!pos||p.pos===pos)&&(!val||p.value<=val)&&(!rat||p.rating>=rat)).sort((a,b)=>b.rating-a.rating||a.value-b.value)}
-function drawGlobalMarket(){let arr=filteredWorld(),per=40,pages=Math.max(1,Math.ceil(arr.length/per));if(marketPage>=pages)marketPage=pages-1;let page=arr.slice(marketPage*per,(marketPage+1)*per);$("globalResults").innerHTML=`<p class="muted">${arr.length.toLocaleString("pt-BR")} resultado(s)</p>${page.map(p=>`<div class="player"><div><b>${p.name}</b><br><span class="muted">${p.club} • ${p.league} • ${p.age} anos</span></div><span class="pill">${p.pos}</span><b>${p.rating}</b><span class="hideMob">${fmt(p.value)}</span><button class="btn small primary" onclick="buyForeign('${p.id}')">Comprar</button></div>`).join("")||"<p>Nenhum jogador encontrado.</p>"}<div class="pager"><button class="btn small" onclick="marketPage=Math.max(0,marketPage-1);drawGlobalMarket()">Anterior</button><b>${marketPage+1}/${pages}</b><button class="btn small" onclick="marketPage=Math.min(${pages-1},marketPage+1);drawGlobalMarket()">Próxima</button></div>`}
+function drawGlobalMarket(){let arr=filteredWorld(),per=40,pages=Math.max(1,Math.ceil(arr.length/per));if(marketPage>=pages)marketPage=pages-1;let page=arr.slice(marketPage*per,(marketPage+1)*per);$("globalResults").innerHTML=`<p class="muted">${arr.length.toLocaleString("pt-BR")} resultado(s)</p>${page.map(p=>`<div class="player"><div><b class="clickable" onclick="playerModal('${p.id}')">${p.name}</b><br><span class="muted">${p.club} • ${p.league} • ${p.age} anos</span></div><span class="pill">${p.pos}</span><b>${p.rating}</b><span class="hideMob">${fmt(p.value)}</span><button class="btn small primary" onclick="buyForeign('${p.id}')">Comprar</button></div>`).join("")||"<p>Nenhum jogador encontrado.</p>"}<div class="pager"><button class="btn small" onclick="marketPage=Math.max(0,marketPage-1);drawGlobalMarket()">Anterior</button><b>${marketPage+1}/${pages}</b><button class="btn small" onclick="marketPage=Math.min(${pages-1},marketPage+1);drawGlobalMarket()">Próxima</button></div>`;setTimeout(()=>window.makeAllPlayerNamesClickable&&makeAllPlayerNamesClickable(),0)}
 function buyForeign(pid){
  let buyer=team(manager().team),p=S.globalMarket.find(x=>x.id===pid);if(!p||p.bought)return;
  if(buyer.cash<p.value)return alert("Caixa insuficiente.");
@@ -415,7 +428,7 @@ function finishRound(){
  S.news.unshift(`Rodada ${S.round+1} da temporada ${S.season} concluída.`);
  S.round++;
  maybeGenerateOffers();
- if(S.round>=38)endSeason();else{save();setTimeout(()=>{alert("Fim da rodada.");setActiveNav("gameplay");render("gameplay");let c=$("content");if(c)c.insertAdjacentHTML("afterbegin",`<div class="card"><b>Rodada concluída.</b> Os placares foram salvos. <button class="btn primary small" onclick="live=null;setActiveNav('home');render('home')">Continuar</button></div>`)},200)}
+ if(S.round>=38)endSeason();else{save();setTimeout(()=>{alert("Fim da rodada.");setActiveNav("gameplay");render("gameplay");let c=$("content");if(c)c.insertAdjacentHTML("afterbegin",`<div class="card"><b>Rodada concluída.</b> Os placares foram salvos. <button class="btn primary small" onclick="live=null;setActiveNav('home');render('home');setTimeout(loadEmbeddedCrests,10)">Continuar</button></div>`)},200)}
 }
 function maybeGenerateOffers(){
  let m=manager(),cur=team(m.team);
@@ -1064,7 +1077,7 @@ function applyRoundFinanceV163(){
   const ops=operatingCostPerRound(t);t.cash-=ops;t.finance.maintenance+=ops;
   // Folha salarial mais realista sem alterar contratos existentes visualmente.
   const extraWage=Math.round(monthlyPayroll(t)/4*.35);t.cash-=extraWage;t.wageSpent=(t.wageSpent||0)+extraWage;
-  if(t.debt>0){const interest=Math.round(t.debt*.012/4);t.cash-=interest;t.finance.interest+=interest}
+  // Juros das dívidas são processados anualmente pela expansão (8% ao ano).
   // Patrocínio em parcelas ao longo da temporada.
   const sponsorPart=Math.round(t.sponsor.seasonValue/38);t.cash+=sponsorPart;t.finance.sponsor+=sponsorPart;
  });
@@ -1245,7 +1258,7 @@ function gameplay(selectedDivision=null){
       <div class="card live-events-panel"><h3>Eventos Série ${d}</h3><div id="log${d}" class="log">${events.length?events.map(e=>`<div class="event ${e.type}"><b>${e.min}'</b> ${e.text}</div>`).join(''):`<span class="muted">${hasLive?'A bola está rolando...':'Os eventos ficam disponíveis durante a partida.'}</span>`}</div></div>
       <div class="card live-scores-panel"><h2>Central Série ${d}</h2><div id="scores${d}" class="scores">${gameScoreRows(games,hasLive)}</div></div>
     </div>
-    ${isActive?`<div id="single-substitution-panel">${substitutionsUI()}</div>`:''}`;
+    `;
   if(hasLive)drawLive();
 }
 setSeriesView=function(kind,d){
@@ -1253,6 +1266,10 @@ setSeriesView=function(kind,d){
   if(kind==='fixtures')return fixtures(d);
   if(kind==='gameplay'){gameplayDivision=d;return gameplay(d)}
 };
+
+// ===== V18.5: substituições manuais removidas =====
+function substitutionsUI(){return ''}
+function makeSubstitution(){return false}
 
 // ===== V17.11: limite de notícias e proteção do tamanho do save =====
 function trimNewsHistory(limit=1000){
@@ -1266,5 +1283,6 @@ save=function(){trimNewsHistory();return saveV1711Base.apply(this,arguments)};
 trimNewsHistory();
 
 </script>
+<script src="expansion.js"></script>
 <script src="multiplayer.js"></script>
 </body></html>

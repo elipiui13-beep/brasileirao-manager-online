@@ -43,3 +43,6 @@ SALVAR E CONTINUAR A CARREIRA
 - O servidor grava a carreira na pasta online-data.
 - No Render, para o salvamento sobreviver a reinicializações e novos deploys, configure um Persistent Disk montado em /var/data ou defina a variável DATA_DIR apontando para o disco persistente.
 - Sem disco persistente, a carreira normalmente continua entre acessos, mas pode ser perdida quando o serviço for recriado ou receber novo deploy.
+
+
+Escudos oficiais: o servidor baixa automaticamente e guarda em assets/crests na primeira execução com internet, passando a servir os arquivos localmente.

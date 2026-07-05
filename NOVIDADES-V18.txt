@@ -1,0 +1,50 @@
+BRASILEIRÃO MANAGER v18.1 — EXPANSÃO MANAGER TOTAL
+
+Base oficial: v17.12.
+
+Incluído:
+- Novas formações: 4-1-4-1, 4-3-1-2, 4-2-2-2, 3-4-3, 3-4-2-1 e 5-4-1.
+- Mercado inteligente por posição, orçamento, promoção, endividamento, estrelas, recusas e concorrência.
+- Peneira anual, relatório, potencial, evolução, promoção, venda de promessa e investimento na base.
+- Objetivos detalhados da diretoria com progresso.
+- Perfil, aproveitamento, histórico, salário, ranking e Hall da Fama dos técnicos.
+- Estaduais, Copa do Brasil, Libertadores, Sul-Americana, Mundial e Supercopa.
+- Login e senha na sala, reconexão, autosave, histórico de ações, chat e cronômetro de prontidão.
+- Página individual, gráfico de evolução, comparação, forma recente, premiações e melhorias mobile.
+
+
+CORREÇÕES v18.1
+- Corrigido travamento na virada da temporada por jogador sem histórico.
+- Estatísticas de vitórias, empates e derrotas registradas uma vez por rodada para todos os técnicos humanos.
+- Mercado inteligente recalibrado para movimentação consistente sem excesso.
+- Custos anuais progressivos controlam o caixa dos clubes ricos.
+- Salvamento automático da expansão corrigido.
+
+
+V18.2
+- Mercado internacional reequilibrado.
+- Neymar e veteranos de elite com valores alcançáveis.
+- Negociação de preço no mercado internacional.
+- Compras parceladas em até 3 parcelas anuais.
+- Parcelas futuras registradas e cobradas automaticamente.
+
+V18.3 — PLANO DE DÍVIDAS
+- Prazo padrão de 3 temporadas e juros de 8% ao ano.
+- Amortização mínima anual de 25%, com cobrança total no vencimento.
+- Bloqueio de compras parceladas em caso de atraso.
+- Vendas financeiras automáticas quando necessário.
+- Painel de dívida, prazo, parcela mínima e risco financeiro.
+
+
+V18.4 — Vencimento de dívidas
+- Venda obrigatória permitida com elenco mínimo.
+- Promoção automática da melhor promessa da base após cada venda financeira.
+- Geração de jovem emergencial quando a base estiver vazia.
+- Elenco preservado com no mínimo 18 jogadores.
+
+V18.5
+- Painel e comandos de substituições manuais removidos das partidas.
+- Escalação inicial, tática, eventos e simulação permanecem inalterados.
+
+V18.8:
+- Ficha completa clicável para jogadores do elenco, adversários, mercado nacional, mercado internacional, agentes livres e categorias de base.

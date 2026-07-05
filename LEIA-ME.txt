@@ -5,3 +5,6 @@ Abra o arquivo index.html no navegador.
 V16.1: pacote de sons offline com apitos, torcida, gols, cartões, lesões e controle de volume.
 
 Versão 16.6: sons de clique e navegação removidos; permanecem apenas os sons das partidas.
+
+
+Escudos oficiais: o servidor baixa automaticamente e guarda em assets/crests na primeira execução com internet, passando a servir os arquivos localmente.
