@@ -34,3 +34,12 @@ VERSÃO 17.5
 - Corrigida a entrada do anfitrião após criar a sala.
 - Informações da sala ficam no cabeçalho, ao lado da temporada/rodada.
 - O botão Estou pronto aparece no mesmo local para os dois jogadores.
+
+
+SALVAR E CONTINUAR A CARREIRA
+-----------------------------
+- O anfitrião pode clicar em “Salvar carreira” no topo do jogo.
+- O acesso da sala fica salvo no navegador e a opção “Continuar carreira online” aparece ao abrir o site novamente.
+- O servidor grava a carreira na pasta online-data.
+- No Render, para o salvamento sobreviver a reinicializações e novos deploys, configure um Persistent Disk montado em /var/data ou defina a variável DATA_DIR apontando para o disco persistente.
+- Sem disco persistente, a carreira normalmente continua entre acessos, mas pode ser perdida quando o serviço for recriado ou receber novo deploy.
