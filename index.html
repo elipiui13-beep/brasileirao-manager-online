@@ -1068,6 +1068,20 @@ function applyRoundFinanceV163(){
   // Patrocínio em parcelas ao longo da temporada.
   const sponsorPart=Math.round(t.sponsor.seasonValue/38);t.cash+=sponsorPart;t.finance.sponsor+=sponsorPart;
  });
+ // Clubes controlados pela IA recorrem a crédito somente quando o caixa fica negativo.
+ const humanTeams=new Set((S.managers||[]).map(m=>m.team));
+ S.teams.forEach(t=>{
+  if(humanTeams.has(t.id)||t.cash>=0)return;
+  const max=t.division==='A'?50000000:t.division==='B'?20000000:8000000;
+  const reserve=t.division==='A'?1000000:t.division==='B'?500000:250000;
+  const room=Math.max(0,max-(t.debt||0));
+  const needed=Math.ceil((-t.cash+reserve)/100000)*100000;
+  const amount=Math.min(room,needed);
+  if(amount<=0)return;
+  t.cash+=amount;t.debt=(t.debt||0)+amount;t.finance.loans=(t.finance.loans||0)+amount;
+  S.news.unshift(`${t.name} contratou empréstimo emergencial de ${fmt(amount)} para equilibrar o caixa.`);
+ });
+ trimNewsHistory();
 }
 function seasonPrizeFor(t,position){
  const A=[60000000,45000000,36000000,30000000,26000000,23000000,21000000,19000000,17000000,15000000,13000000,11500000,10000000,9000000,8000000,7000000,6000000,5000000,4000000,3000000];
@@ -1239,6 +1253,17 @@ setSeriesView=function(kind,d){
   if(kind==='fixtures')return fixtures(d);
   if(kind==='gameplay'){gameplayDivision=d;return gameplay(d)}
 };
+
+// ===== V17.11: limite de notícias e proteção do tamanho do save =====
+function trimNewsHistory(limit=1000){
+ if(!S)return;
+ if(!Array.isArray(S.news))S.news=[];
+ if(S.news.length>limit)S.news=S.news.slice(0,limit);
+ if(Array.isArray(S.transferLog)&&S.transferLog.length>500)S.transferLog=S.transferLog.slice(0,500);
+}
+const saveV1711Base=save;
+save=function(){trimNewsHistory();return saveV1711Base.apply(this,arguments)};
+trimNewsHistory();
 
 </script>
 <script src="multiplayer.js"></script>

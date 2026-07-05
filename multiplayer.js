@@ -77,7 +77,7 @@ function applyLiveSnapshot(snapshot){
   else if(nav==='gameplay'&&oldMinute!==snapshot.minute){gameplay(gameplayDivision||team(manager().team)?.division||'C')}
 }
 function applyRoom(room,forceState=false){if(!room)return;const stateChanged=forceState||room.version>MP.version;MP.version=Math.max(MP.version,room.version||0);MP.players=room.players||[];MP.allReady=MP.players.length===2&&MP.players.every(p=>p.ready);if(stateChanged&&room.state){MP.applying=true;S=room.state;S.turn=MP.index;MP.applying=false;}if((room.liveVersion||0)>MP.liveVersion||forceState){MP.liveVersion=room.liveVersion||0;applyLiveSnapshot(room.live||null)}drawBar()}
-function saveLocal(){try{localStorage.setItem('brCareerV12',JSON.stringify(S))}catch{}}
+function saveLocal(){try{if(typeof trimNewsHistory==='function')trimNewsHistory();localStorage.setItem('brCareerV12',JSON.stringify(S))}catch{}}
 let saveTimer=null;
 async function pushStateNow(){
   if(!MP.online||MP.applying||!S)return;
@@ -116,7 +116,7 @@ function enhanceGameButtons(){
     ready.style.setProperty('background',st.ready?'linear-gradient(135deg,#15803d,#22c55e)':'linear-gradient(135deg,#b91c1c,#ef4444)','important');
     ready.style.setProperty('color','#fff','important');
     if(ready.textContent!==st.label)ready.textContent=st.label;
-    if(MP.host){wrap.style.setProperty('gap','18px','important');btn.style.setProperty('margin-top','4px','important')}
+    if(MP.host){wrap.style.setProperty('display','flex','important');wrap.style.setProperty('flex-direction','column','important');wrap.style.setProperty('gap','2cm','important');wrap.style.setProperty('align-items','stretch','important');btn.style.setProperty('margin-top','0','important')}
   });
 }
 function install(){
