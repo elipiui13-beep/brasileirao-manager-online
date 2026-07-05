@@ -1,8 +1,8 @@
 {
   "name": "brasileirao-manager-online",
-  "version": "18.15.0",
+  "version": "18.24.0",
   "private": true,
-  "description": "Servidor multiplayer do Brasileirão Manager, com escudos locais otimizados",
+  "description": "Brasileirão Manager com avanço de rodada protegido contra repetição de partidas.",
   "scripts": {
     "start": "node server.js"
   },

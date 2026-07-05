@@ -57,6 +57,8 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:8px;borde
 
 
 /* V15.7: central maior e eventos compactos */
+
+.focus-live-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}.focus-live-card{background:#09261c;border:1px solid #2d6b50;border-radius:12px;padding:12px;min-height:145px}.focus-live-card h3{margin:0 0 7px;font-size:15px}.focus-live-score{font-size:18px;font-weight:1000;text-align:center;padding:7px;border-radius:8px;background:#061b14;margin-bottom:8px}.focus-matchup{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:10px;margin-bottom:10px}.focus-team{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:92px;padding:9px;border-radius:10px;background:#061b14;border:1px solid #ffffff18;text-align:center}.focus-team.mine{border-color:#48df82;box-shadow:inset 0 0 0 1px #48df8240}.focus-team.opponent{border-color:#ffbf47;box-shadow:inset 0 0 0 1px #ffbf4740;background:#281d08}.focus-team-label{font-size:10px;text-transform:uppercase;letter-spacing:.8px;font-weight:900;opacity:.78}.focus-team-name{font-size:15px;font-weight:1000;line-height:1.15}.focus-team img{width:42px;height:42px;object-fit:contain}.focus-versus{font-size:24px;font-weight:1000;color:#ffd46b}.focus-live-events{max-height:115px;overflow-y:auto;font-size:12px}.focus-live-events .event{padding:4px 5px;border-bottom:1px solid #ffffff10}@media(max-width:700px){.focus-live-grid{grid-template-columns:1fr}.focus-matchup{gap:6px}.focus-team-name{font-size:13px}}
 .live-match-grid{display:grid;grid-template-columns:minmax(250px,.72fr) minmax(420px,1.55fr);gap:12px;align-items:start}
 .live-events-panel .log{height:430px;font-size:12px}
 .live-events-panel .event{padding:5px 7px}
@@ -241,18 +243,14 @@ function openGame(){$("setup").classList.add("hidden");$("game").classList.remov
 function standings(d){return S.teams.filter(t=>t.division===d).sort((a,b)=>b.pts-a.pts||b.w-a.w||(b.gf-b.ga)-(a.gf-a.ga)||b.gf-a.gf)}function pos(t){return standings(t.division).findIndex(x=>x.id===t.id)+1}
 const FORMATIONS={"4-3-3":{GOL:1,ZAG:2,LD:1,LE:1,VOL:1,MC:1,MEI:1,PD:1,PE:1,ATA:1},"4-4-2":{GOL:1,ZAG:2,LD:1,LE:1,VOL:1,MC:2,MEI:1,ATA:2},"4-2-3-1":{GOL:1,ZAG:2,LD:1,LE:1,VOL:2,MEI:1,PD:1,PE:1,ATA:1},"3-5-2":{GOL:1,ZAG:3,LD:1,LE:1,VOL:1,MC:1,MEI:1,ATA:2},"5-3-2":{GOL:1,ZAG:3,LD:1,LE:1,VOL:1,MC:1,MEI:1,ATA:2}};
 const TACTICS={"Equilibrada":{atk:1,def:1,card:1},"Ofensiva":{atk:1.18,def:.88,card:1.08},"Defensiva":{atk:.82,def:1.18,card:.9},"Contra-ataque":{atk:1.08,def:1.08,card:1},"Pressão alta":{atk:1.12,def:.95,card:1.22},"Posse de bola":{atk:1.04,def:1.04,card:.92}};
-function availableForMatch(p){return !p.injury||p.injury.gamesLeft<=0||p.playInjured}
 function effectiveRating(p){let pen=p.injury&&p.injury.gamesLeft>0&&p.playInjured?(p.injury.penalty||4):0;let fitness=Number.isFinite(p.fitness)?p.fitness:100;let fitnessMod=(fitness-75)/12.5;let formMod=((p.form||6.5)-6.5)*1.25;return Math.max(40,Math.round((p.rating-pen+fitnessMod+formMod)*10)/10)}
 function fitnessClass(p){return p.fitness>=82?"fitness-good":p.fitness>=65?"fitness-mid":"fitness-low"}
 function homeMark(g,teamId){return g.home===teamId?'<span class="home-icon" title="Mandante">H</span>':''}
-function strength(t){let p=t.players.filter(x=>x.starter&&availableForMatch(x));if(p.length<11)p=[...t.players].filter(availableForMatch).sort((a,b)=>effectiveRating(b)-effectiveRating(a)).slice(0,11);let base=p.reduce((s,x)=>s+effectiveRating(x),0)/Math.max(1,p.length);let fit=tacticalFit(t,p);return base+fit}
-function tacticalFit(t,players){let need=FORMATIONS[t.formation]||FORMATIONS["4-3-3"],have={};players.forEach(p=>have[p.pos]=(have[p.pos]||0)+1);let matched=0,total=Object.values(need).reduce((a,b)=>a+b,0);Object.entries(need).forEach(([pos,n])=>matched+=Math.min(n,have[pos]||0));return (matched/total-.7)*5}
 function header(){
  $("seasonBadge").textContent=`${S.season} • Rodada ${S.round+1}/38`;
  let m=manager(),t=team(m.team);
  $("turn").innerHTML=`${m.name} — ${crest(t)} ${t.name} • Série ${t.division} • Reputação ${m.reputation}`;
 }
-function render(v){header();({home,gameplay,squad,opponents,market,table,fixtures,news,chat:window.mpRenderChat}[v]||home)()}
 function home(){
  let m=manager(),t=team(m.team),g=S.schedules[t.division][S.round]?.find(x=>x.home===t.id||x.away===t.id);
  $("content").innerHTML=`<div class="grid">
@@ -277,19 +275,7 @@ function home(){
  </div>
  ${renderOffers()}`;
 }
-function renderOffers(){
- let m=manager();
- if(!S.offers||!S.offers.length)return `<div class="card"><h3>Propostas de trabalho</h3><p class="muted">Nenhuma proposta no momento.</p></div>`;
- return `<div class="card"><h3>Propostas de trabalho</h3>${S.offers.map((o,i)=>{let c=team(o.teamId);return `<div class="player"><div>${crest(c)}<b>${c.name}</b><br><span class="muted">Série ${c.division} • ${o.reason}</span></div><span class="pill">Rep. ${o.required}</span><b>${fmt(o.salary)}/ano</b><span></span><button class="btn small primary" onclick="acceptOffer(${i})">Aceitar</button></div>`}).join("")}</div>`;
-}
-function acceptOffer(i){
- let o=S.offers[i],m=manager(),old=team(m.team),next=team(o.teamId);
- old.human=null;next.human=0;m.team=next.id;S.offers=[];
- S.news.unshift(`${m.name} deixou o ${old.name} e assumiu o ${next.name}.`);
- save();alert(`Você agora é técnico do ${next.name}, da Série ${next.division}.`);render("home");
-}
 function injuryText(p){if(!p.injury||p.injury.gamesLeft<=0)return "";return `${p.injury.type} • ${p.injury.gamesLeft} jogo(s)`}
-function squad(){let t=team(manager().team);let starters=t.players.filter(p=>p.starter).length;$(`content`).innerHTML=`<div class="card"><h2>Elenco — ${t.name}</h2><div class="tactical-grid"><div class="tactic-box"><label>Formação</label><select onchange="setFormation(this.value)">${Object.keys(FORMATIONS).map(f=>`<option ${t.formation===f?"selected":""}>${f}</option>`).join("")}</select></div><div class="tactic-box"><label>Tipo de tática</label><select onchange="setTactic(this.value)">${Object.keys(TACTICS).map(x=>`<option ${t.tactic===x?"selected":""}>${x}</option>`).join("")}</select></div><div class="tactic-box"><label>Escalação</label><button class="btn primary" onclick="autoLineup()">Montar melhor time</button><p class="muted">${starters}/11 titulares</p></div></div><p class="muted">Lesionados podem ser poupados ou escalados sob risco de agravamento e perda de desempenho.</p>${[...t.players].sort((a,b)=>b.starter-a.starter||b.rating-a.rating).map(p=>`<div class="player"><div><b>${p.name}</b><br><span class="muted">${p.age} anos • Forma ${p.form.toFixed(1)} • <span class="${fitnessClass(p)}">Condição ${Math.round(p.fitness)}%</span> • Poder atual <b>${effectiveRating(p).toFixed(1)}</b> ${p.listed?"• à venda":""}</span>${p.injury&&p.injury.gamesLeft>0?`<br><span class="injury-badge">${injuryText(p)}</span> ${p.playInjured?'<span class="risk-badge">Vai jogar no sacrifício</span>':''}`:""}</div><span class="pill">${p.pos}</span><b>${p.rating}</b><span class="hideMob">${fmt(p.value)} ${p.valueTrend?`<small class="${p.valueTrend>0?'trend-up':'trend-down'}">${p.valueTrend>0?'▲':'▼'}${Math.abs(p.valueTrend).toFixed(1)}%</small>`:''}</span><span><button class="btn small ${p.starter?"primary":""}" onclick="toggle('${p.id}')">${p.starter?"Titular":"Reserva"}</button> ${p.injury&&p.injury.gamesLeft>0?`<button class="btn small ${p.playInjured?'danger':''}" onclick="toggleInjuryDecision('${p.id}')">${p.playInjured?'Poupar':'Forçar jogo'}</button>`:''} <button class="btn small" onclick="listPlayer('${p.id}')">${p.listed?"Retirar":"Vender"}</button></span></div>`).join("")}</div>`}
 function toggleInjuryDecision(id){let t=team(manager().team),p=t.players.find(x=>x.id===id);if(!p||!p.injury)return;p.playInjured=!p.playInjured;if(!p.playInjured&&p.starter)p.starter=false;save();squad()}
 function setFormation(v){let t=team(manager().team);t.formation=v;autoLineup(false)}
 function setTactic(v){let t=team(manager().team);t.tactic=v;save();squad()}
@@ -325,36 +311,20 @@ function filteredNational(){let q=($("nqPlayer")?.value||"").toLowerCase(),div=$
 function drawNationalMarket(){let arr=filteredNational(),per=40,pages=Math.max(1,Math.ceil(arr.length/per));if(nationalMarketPage>=pages)nationalMarketPage=pages-1;let page=arr.slice(nationalMarketPage*per,(nationalMarketPage+1)*per);$("nationalResults").innerHTML=`<p class="muted">${arr.length.toLocaleString("pt-BR")} jogador(es) nacional(is)</p>${page.map(x=>`<div class="player"><div>${crest(x.owner)}<b class="clickable" onclick="playerModal('${x.p.id}')">${x.p.name}</b><br><span class="muted">${x.owner.name} • Série ${x.owner.division} • ${x.p.age} anos</span></div><span class="pill">${x.p.pos}</span><b>${x.p.rating}</b><span class="hideMob">${fmt(x.p.value)}</span><button class="btn small primary" onclick="buy('${x.p.id}',${x.owner.id})">Comprar</button></div>`).join("")||"<p>Nenhum jogador encontrado.</p>"}<div class="pager"><button class="btn small" onclick="nationalMarketPage=Math.max(0,nationalMarketPage-1);drawNationalMarket()">Anterior</button><b>${nationalMarketPage+1}/${pages}</b><button class="btn small" onclick="nationalMarketPage=Math.min(${pages-1},nationalMarketPage+1);drawNationalMarket()">Próxima</button></div>`;setTimeout(()=>window.makeAllPlayerNamesClickable&&makeAllPlayerNamesClickable(),0)}
 function filteredWorld(){let q=($("qPlayer")?.value||"").toLowerCase(),lg=$("qLeague")?.value||"",pos=$("qPos")?.value||"",val=+($("qValue")?.value||0)*1e6,rat=+($("qRating")?.value||0);return S.globalMarket.filter(p=>!p.bought&&(!q||(p.name+" "+p.club).toLowerCase().includes(q))&&(!lg||p.league===lg)&&(!pos||p.pos===pos)&&(!val||p.value<=val)&&(!rat||p.rating>=rat)).sort((a,b)=>b.rating-a.rating||a.value-b.value)}
 function drawGlobalMarket(){let arr=filteredWorld(),per=40,pages=Math.max(1,Math.ceil(arr.length/per));if(marketPage>=pages)marketPage=pages-1;let page=arr.slice(marketPage*per,(marketPage+1)*per);$("globalResults").innerHTML=`<p class="muted">${arr.length.toLocaleString("pt-BR")} resultado(s)</p>${page.map(p=>`<div class="player"><div><b class="clickable" onclick="playerModal('${p.id}')">${p.name}</b><br><span class="muted">${p.club} • ${p.league} • ${p.age} anos</span></div><span class="pill">${p.pos}</span><b>${p.rating}</b><span class="hideMob">${fmt(p.value)}</span><button class="btn small primary" onclick="buyForeign('${p.id}')">Comprar</button></div>`).join("")||"<p>Nenhum jogador encontrado.</p>"}<div class="pager"><button class="btn small" onclick="marketPage=Math.max(0,marketPage-1);drawGlobalMarket()">Anterior</button><b>${marketPage+1}/${pages}</b><button class="btn small" onclick="marketPage=Math.min(${pages-1},marketPage+1);drawGlobalMarket()">Próxima</button></div>`;setTimeout(()=>window.makeAllPlayerNamesClickable&&makeAllPlayerNamesClickable(),0)}
-function buyForeign(pid){
- let buyer=team(manager().team),p=S.globalMarket.find(x=>x.id===pid);if(!p||p.bought)return;
- if(buyer.cash<p.value)return alert("Caixa insuficiente.");
- buyer.cash-=p.value;p.bought=true;
- buyer.players.push({id:"F-"+p.id+"-"+Date.now(),name:p.name,pos:p.pos,rating:p.rating,age:p.age,value:p.value,starter:false,goals:0,yellow:0,red:0,injured:0,listed:false,originClub:p.club,originLeague:p.league});
- S.news.unshift(`${buyer.name} contratou ${p.name}, do ${p.club}, por ${fmt(p.value)}.`);
- save();drawGlobalMarket();header();
-}
 function aiSaleDecision(seller,p){let depth=seller.players.filter(x=>x.pos===p.pos).length,starter=p.starter,listed=p.listed,young=p.age<=23,star=p.rating>=seller.base+3;let willingness=(listed?55:0)+(depth>=3?18:0)+(!starter?18:0)+(p.age>=31?10:0)-(young?12:0)-(star?25:0);let mult=listed?1.02:starter?1.28:1.14;if(star)mult+=.18;if(young)mult+=.10;return {willingness,asking:Math.round(p.value*mult/50000)*50000}}
-function buy(pid,oid){let buyer=team(manager().team),seller=team(oid),p=seller.players.find(x=>x.id===pid);if(!p)return;let d=aiSaleDecision(seller,p);if(seller.players.length<=16)return alert(`${seller.name} não vende: elenco curto.`);if(d.willingness+Math.random()*45<35)return alert(`${seller.name} recusou negociar ${p.name}. Ele é importante para o elenco.`);if(buyer.cash<d.asking)return alert(`O ${seller.name} aceita conversar, mas pede ${fmt(d.asking)}. Seu caixa é insuficiente.`);buyer.cash-=d.asking;seller.cash+=d.asking;seller.players=seller.players.filter(x=>x.id!==pid);p.listed=false;p.starter=false;buyer.players.push(p);S.news.unshift(`${buyer.name} comprou ${p.name}, do ${seller.name}, por ${fmt(d.asking)}.`);save();market()}
-function sellNow(pid){let t=team(manager().team),p=t.players.find(x=>x.id===pid);if(t.players.length<=15)return alert("O elenco precisa manter pelo menos 15 jogadores.");let offer=Math.round(p.value*(.82+Math.random()*.25));t.cash+=offer;t.players=t.players.filter(x=>x.id!==pid);S.news.unshift(`${t.name} vendeu ${p.name} por ${fmt(offer)}.`);save();market()}
 function stadiumUpgradeCost(t){return Math.round((8+t.stadium.level*7)*1e6)}
 function upgradeStadium(){let t=team(manager().team),cost=stadiumUpgradeCost(t);if(t.stadium.level>=10)return alert("O estádio já está no nível máximo.");if(t.cash<cost)return alert("Caixa insuficiente para esta melhoria.");t.cash-=cost;t.stadium.level++;t.stadium.capacity+=5000+2000*t.stadium.level;S.news.unshift(`${t.name} ampliou seu estádio para ${t.stadium.capacity.toLocaleString("pt-BR")} lugares.`);save();home()}
 function stadiumIncome(t,g){if(g.home!==t.id)return 0;let performance=.45+Math.min(.45,(pos(t)<=4?.25:pos(t)<=10?.12:0))+(Math.random()*.18);let attendance=Math.min(t.stadium.capacity,Math.round(t.stadium.capacity*performance));let ticket=28+t.stadium.level*4+(t.division==="A"?18:t.division==="B"?8:0);let gross=Math.round(attendance*ticket);let expenses=Math.round(gross*.22);let net=gross-expenses;t.stadium.lastAttendance=attendance;t.stadium.lastRevenue=net;t.stadium.totalRevenue+=net;t.cash+=net;return net}
 let tableDivision="A",fixtureDivision="A";
 function seriesTabs(kind,current){return `<div class="series-tabs">${["A","B","C"].map(d=>`<button class="btn ${current===d?"active":""}" onclick="setSeriesView('${kind}','${d}')">Série ${d}</button>`).join("")}</div>`}
 function setSeriesView(kind,d){if(kind==="table"){tableDivision=d;table()}else{fixtureDivision=d;fixtures()}}
-function teamDisplay(t){let mine=t.id===manager().team;return `${crest(t)}${t.name}${mine?'<span class="my-team-label">SEU TIME</span>':''}`}
-function table(){$("content").innerHTML=`${seriesTabs("table",tableDivision)}<div class="card"><div id="table-current"></div></div>`;drawTable(tableDivision,"table-current")}
 function drawTable(d,target="table-current"){let rows=standings(d);$(target).innerHTML=`<h2>Série ${d}</h2><table><tr><th>#</th><th>Clube</th><th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th><th>Pts</th></tr>${rows.map((t,i)=>`<tr class="${t.id===manager().team?"human ":""}${(d!=="A"&&i<4)?"zone-up ":""}${(d!=="C"&&i>=16)?"zone-down":""}"><td>${i+1}</td><td>${teamDisplay(t)}</td><td>${t.played}</td><td>${t.w}</td><td>${t.d}</td><td>${t.l}</td><td>${t.gf}</td><td>${t.ga}</td><td>${t.gf-t.ga}</td><td><b>${t.pts}</b></td></tr>`).join("")}</table>`}
-function fixtures(){$("content").innerHTML=`${seriesTabs("fixtures",fixtureDivision)}<div id="fixtures-current">${S.schedules[fixtureDivision].map((gs,i)=>`<div class="card"><h3>Série ${fixtureDivision} — Rodada ${i+1}</h3>${gs.map(g=>{let myId=manager().team,isMine=g.home===myId||g.away===myId;return `<div class="fixture ${isMine?"human":""}"><div>${homeMark(g,g.home)}${teamDisplay(team(g.home))}</div><b>${g.played?g.hg+" × "+g.ag:"x"}</b><div>${teamDisplay(team(g.away))}</div></div>`}).join("")}</div>`).join("")}</div>`}
-function news(){$("content").innerHTML=`<div class="card"><h2>Notícias</h2>${S.news.map(n=>`<div class="news">${n}</div>`).join("")}</div>`}
 function finishTurn(){startLive()}
-function attacker(t){let a=t.players.filter(p=>p.starter&&availableForMatch(p)&&["ATA","PE","PD","MEI"].includes(p.pos));return a[rand(0,a.length-1)]||t.players.filter(availableForMatch)[0]}
 const INJURIES=[{type:"Contusão leve",games:[1,1],risk:.10,penalty:2},{type:"Desconforto muscular",games:[1,2],risk:.18,penalty:3},{type:"Entorse no tornozelo",games:[2,4],risk:.28,penalty:5},{type:"Lesão muscular",games:[3,6],risk:.35,penalty:6},{type:"Lesão no joelho",games:[5,10],risk:.45,penalty:8}];
 function createInjury(p){let x=INJURIES[rand(0,INJURIES.length-1)];p.injury={type:x.type,gamesLeft:rand(x.games[0],x.games[1]),risk:x.risk,penalty:x.penalty};p.injured=p.injury.gamesLeft;p.playInjured=false}
 function eventPush(g,min,type,teamId,text){live.events.unshift({min,type,teamId,division:g.division,text})}
 function randomStarter(t,filter=null){let pool=t.players.filter(p=>p.starter&&availableForMatch(p)&&(!filter||filter(p)));return pool.length?pool[rand(0,pool.length-1)]:null}
 function goalkeeper(t){return randomStarter(t,p=>p.pos==="GOL")||t.players.find(p=>p.pos==="GOL")}
-function scoreGoal(g,t,isHome,min,label="gol"){if(isHome)g.hg++;else g.ag++;let p=attacker(t);if(p){p.goals++;eventPush(g,min,label==="penalty"?"penalty":"goal",t.id,label==="penalty"?`⚽ PÊNALTI! ${p.name} converte para o ${t.name}.`:`⚽ GOL do ${t.name}! ${p.name} balança a rede.`)}}
 function tick(g,min){
  let h=team(g.home),a=team(g.away),dif=strength(h)-strength(a),ht=TACTICS[h.tactic]||TACTICS["Equilibrada"],at=TACTICS[a.tactic]||TACTICS["Equilibrada"];
  let hp=Math.max(.002,(.0108+dif*.0003)*ht.atk/at.def),ap=Math.max(.002,(.009-dif*.0003)*at.atk/ht.def),r=Math.random();
@@ -381,97 +351,21 @@ function refreshCurrentView(){
 }
 function goHomeAfterRound(){
  live=null;
+ if(typeof MP!=='undefined'&&MP.online&&MP.host&&typeof pushLive==='function'){
+  setTimeout(()=>pushLive(true).catch(e=>console.warn('Falha ao limpar partida encerrada:',e.message)),0);
+ }
  setActiveNav("home");
  render("home");
  setTimeout(loadEmbeddedCrests,10);
  window.scrollTo({top:0,behavior:"smooth"});
 }
 
-function gameplay(){
- if(!live){$("content").innerHTML=`<div class="card"><h2>Jogo</h2><p class="muted">Nenhuma rodada está em andamento.</p><button class="btn primary" onclick="startLive()">Iniciar próxima rodada</button></div>`;return}
- const finished=!!live.finished;
- let my=team(manager().team),myGame=(live.games||[]).find(g=>g.home===my?.id||g.away===my?.id);
- let finalBanner=finished?`<div class="card" style="text-align:center;border:2px solid var(--gold);background:linear-gradient(135deg,#342600,#665000)"><h2 style="margin-bottom:6px">🏁 JOGO ENCERRADO</h2>${myGame?`<div style="font-size:22px;font-weight:1000">${teamDisplay(team(myGame.home))} ${myGame.hg} × ${myGame.ag} ${teamDisplay(team(myGame.away))}</div>`:'<div class="muted">A rodada foi concluída.</div>'}<div class="controls" style="justify-content:center;margin-top:12px"><button class="btn primary" onclick="goHomeAfterRound()">Continuar para o menu</button></div></div>`:'';
- $("content").innerHTML=`${finalBanner}<div class="card"><div id="clock" class="clock">${finished?'FIM':live.minute+"'"}</div><div class="controls" style="justify-content:center">${finished?'':`<button id="pause" class="btn" onclick="toggleLivePause()">${live.paused?'Continuar':'Pausar'}</button><button class="btn" onclick="changeLiveSpeed()">Velocidade ×<span id="speed">${live.speed}</span></button>`}</div></div><div class="live-all">${["A","B","C"].map(d=>`<div class="live-series"><div class="card"><h2>Série ${d}</h2><h3>Eventos Série ${d}</h3><div id="log${d}" class="log"></div><h3 style="margin-top:12px">Central Série ${d}</h3><div id="scores${d}" class="scores"></div></div></div>`).join("")}</div>`;
- drawLive();
-}
 function toggleLivePause(){if(!live)return;live.paused=!live.paused;let b=$("pause");if(b)b.textContent=live.paused?'Continuar':'Pausar'}
 function changeLiveSpeed(){if(!live)return;live.speed=live.speed===1?2:live.speed===2?4:1;let s=$("speed");if(s)s.textContent=live.speed}
-function startLive(){
- if(live&&live.active){setActiveNav("gameplay");render("gameplay");return}
- S.turn=0;let games=["A","B","C"].flatMap(d=>S.schedules[d][S.round].map(g=>(g.division=d,g)));
- live={minute:0,games,events:[],speed:1,paused:false,active:true,finished:false};
- setActiveNav("gameplay");render("gameplay");
- live.timer=setInterval(liveTick,600)
-}
-function liveTick(){if(!live||!live.active||live.paused)return;for(let i=0;i<live.speed;i++){live.minute++;live.games.forEach(g=>tick(g,live.minute));if(live.minute>=90){clearInterval(live.timer);live.active=false;live.finished=true;finishRound();return}}drawLive()}
-function drawLive(){
- if(!live||!$("clock"))return;
- $("clock").textContent=live.minute+"'";
- ["A","B","C"].forEach(d=>{let scores=$("scores"+d),log=$("log"+d);if(!scores||!log)return;let games=live.games.filter(g=>g.division===d);scores.innerHTML=games.map(g=>`<div class="scoreline ${g.home===manager().team||g.away===manager().team?"human":""}"><div>${homeMark(g,g.home)}${teamDisplay(team(g.home))}</div><b>${g.hg} × ${g.ag}</b><div>${teamDisplay(team(g.away))}</div></div>`).join("");let ev=live.events.filter(e=>e.division===d);log.innerHTML=ev.map(e=>`<div class="event ${e.type}"><b>${e.min}'</b> ${e.text}</div>`).join("")||"<span class='muted'>A bola está rolando...</span>";});
-}
 function updateFitnessAfterMatch(t){t.players.forEach(p=>p.matchSentOff=false);let tactic=TACTICS[t.tactic]||TACTICS["Equilibrada"];t.players.forEach(p=>{let played=p.starter&&availableForMatch(p);if(played){let loss=rand(7,12)+(t.tactic==="Pressão alta"?3:t.tactic==="Ofensiva"?1:0);p.fitness=Math.max(45,p.fitness-loss)}else{let gain=p.injury&&p.injury.gamesLeft>0?rand(3,6):rand(8,13);p.fitness=Math.min(100,p.fitness+gain)}p.lastPower=effectiveRating(p)})}
 function updatePlayerPerformance(t,g,isHome){let scored=isHome?g.hg:g.ag,conceded=isHome?g.ag:g.hg,result=scored>conceded?1:scored===conceded?0:-1;t.players.forEach(p=>{if(!p.starter)return;p.appearances=(p.appearances||0)+1;let match=6.4+result*.45+(p.goals||0)*.08+(Math.random()-.5)*.5;p.form=Math.max(4.5,Math.min(9.5,p.form*.72+match*.28));let ageFactor=p.age<=23?.006:p.age>=32?-.004:0;let perf=(p.form-6.5)*.008+(p.goals>0?.004:0)+ageFactor;let old=p.value;p.value=Math.max(200000,Math.round(old*(1+Math.max(-.035,Math.min(.045,perf)))/50000)*50000);p.valueTrend=old?((p.value-old)/old*100):0})}
 function recoverInjuries(t){t.players.forEach(p=>{if(p.injury&&p.injury.gamesLeft>0){p.injury.gamesLeft--;p.injured=p.injury.gamesLeft;if(p.injury.gamesLeft<=0){p.injury=null;p.injured=0;p.playInjured=false}}})}
-function finishRound(){
- live.games.forEach(g=>{
-   g.played=true;let h=team(g.home),a=team(g.away);
-   h.played++;a.played++;h.gf+=g.hg;h.ga+=g.ag;a.gf+=g.ag;a.ga+=g.hg;
-   if(g.hg>g.ag){h.w++;h.pts+=3;a.l++}else if(g.ag>g.hg){a.w++;a.pts+=3;h.l++}else{h.d++;a.d++;h.pts++;a.pts++}updatePlayerPerformance(h,g,true);updatePlayerPerformance(a,g,false);updateFitnessAfterMatch(h);updateFitnessAfterMatch(a)
-   let gate=stadiumIncome(h,g);if(h.id===manager().team&&gate)S.news.unshift(`${h.name} arrecadou ${fmt(gate)} com ${h.stadium.lastAttendance.toLocaleString("pt-BR")} torcedores no estádio.`);
-   [h,a].forEach(t=>{
-     t.cash+=(t.division==="A"?2.2:t.division==="B"?.9:.4)*1e6;
-     recoverInjuries(t);
-     if(Math.random()<.18){let candidates=t.players.filter(p=>!p.listed&&(!p.starter||p.age>=31||t.players.filter(x=>x.pos===p.pos).length>=3));if(candidates.length)candidates[rand(0,candidates.length-1)].listed=true}
-   })
- });
- let m=manager(),my=team(m.team),myGame=live.games.find(g=>g.home===my.id||g.away===my.id);
- if(myGame){
-   let myGoals=myGame.home===my.id?myGame.hg:myGame.ag,oppGoals=myGame.home===my.id?myGame.ag:myGame.hg;
-   if(myGoals>oppGoals){m.careerPoints+=3;m.reputation=Math.min(100,m.reputation+1)}
-   else if(myGoals===oppGoals){m.careerPoints+=1}
-   else m.reputation=Math.max(1,m.reputation-(Math.random()<.2?1:0));
- }
- S.news.unshift(`Rodada ${S.round+1} da temporada ${S.season} concluída.`);
- S.round++;
- maybeGenerateOffers();
- if(S.round>=38)endSeason();else{save();setTimeout(()=>{alert("Fim da rodada.");setActiveNav("gameplay");render("gameplay");let c=$("content");if(c)c.insertAdjacentHTML("afterbegin",`<div class="card"><b>Rodada concluída.</b> Os placares foram salvos. <button class="btn primary small" onclick="goHomeAfterRound()">Continuar</button></div>`)},200)}
-}
-function maybeGenerateOffers(){
- let m=manager(),cur=team(m.team);
- if(S.offers&&S.offers.length)return;
- if(S.round<5||Math.random()>.18)return;
- let candidates=S.teams.filter(t=>t.id!==cur.id&&t.division!==cur.division);
- candidates=candidates.filter(t=>{
-   let req=t.division==="A"?55:t.division==="B"?28:8;
-   return m.reputation>=req;
- });
- if(!candidates.length)return;
- let c=candidates[rand(0,candidates.length-1)];
- let req=c.division==="A"?55:c.division==="B"?28:8;
- S.offers=[{teamId:c.id,required:req,salary:(c.division==="A"?12:c.division==="B"?5:2)*1e6,reason:"seu desempenho chamou atenção da diretoria"}];
- S.news.unshift(`${c.name} demonstrou interesse em contratar ${m.name}.`);
-}
 function resetStats(){S.teams.forEach(t=>{t.played=t.w=t.d=t.l=t.gf=t.ga=t.pts=0;t.players.forEach(p=>{p.goals=p.assists=p.appearances=p.yellow=p.red=0;p.form=6.5;p.age++;p.value=Math.max(200000,Math.round(p.value*(p.age<24?1.04:p.age>31?.92:.99)/50000)*50000)})})}
-function endSeason(){
- let m=manager(),managedBefore=team(m.team),oldDiv=managedBefore.division,oldPos=pos(managedBefore);
- let A=standings("A"),B=standings("B"),C=standings("C"),downA=A.slice(-4),upB=B.slice(0,4),downB=B.slice(-4),upC=C.slice(0,4);
- let champ=A[0];
- downA.forEach(t=>t.division="B");upB.forEach(t=>t.division="A");downB.forEach(t=>t.division="C");upC.forEach(t=>t.division="B");
- let managedAfter=team(m.team);
- if(oldDiv==="C"&&managedAfter.division==="B"){m.promotions++;m.reputation=Math.min(100,m.reputation+12);m.careerPoints+=20}
- if(oldDiv==="B"&&managedAfter.division==="A"){m.promotions++;m.reputation=Math.min(100,m.reputation+18);m.careerPoints+=30}
- if(oldDiv==="A"&&oldPos===1){m.titles++;m.reputation=Math.min(100,m.reputation+20);m.careerPoints+=40}
- if(oldPos<=4)m.reputation=Math.min(100,m.reputation+5);
- if(oldPos>=17)m.reputation=Math.max(1,m.reputation-8);
- m.seasons++;
- S.news.unshift(`🏆 ${champ.name} é campeão brasileiro de ${S.season}.`);
- S.news.unshift(`Acessos: ${upB.map(x=>x.name).join(", ")} à Série A; ${upC.map(x=>x.name).join(", ")} à Série B.`);
- S.news.unshift(`Rebaixados: ${downA.map(x=>x.name).join(", ")} à Série B; ${downB.map(x=>x.name).join(", ")} à Série C.`);
- S.season++;S.round=0;S.offers=[];
- resetStats();S.schedules=buildSchedules();save();
- setTimeout(()=>{alert(`Temporada encerrada! Campeão: ${champ.name}. Sua reputação agora é ${m.reputation}.`);render("home")},250)
-}
 
 // ===== ATUALIZAÇÃO V14: GESTÃO COMPLETA =====
 const FIELD_LAYOUTS={
@@ -504,17 +398,13 @@ function ensurePlayerV14(p,t){
 }
 function makeBoard(t){let arr=BOARD_TARGETS[t.division]||BOARD_TARGETS.C;return{confidence:70,targets:[arr[0],arr[rand(1,arr.length-1)]],financeTarget:t.division==='A'?0:t.division==='B'?5e6:2e6,startCash:t.cash,warning:false}}
 function syncSlotsFromStarters(t){let layout=FIELD_LAYOUTS[t.formation]||FIELD_LAYOUTS['4-3-3'],used=new Set(),starters=t.players.filter(p=>p.starter);t.lineupSlots=layout.map((s,i)=>{let exact=starters.find(p=>!used.has(p.id)&&p.pos===s[0])||starters.find(p=>!used.has(p.id));if(exact)used.add(exact.id);return{role:s[0],playerId:exact?.id||null}})}
-function playerOption(p,role){let off=p.pos!==role?` ⚠ ${p.pos}`:'';return `<option value="${p.id}">${p.name} (${effectiveRating(p).toFixed(1)})${off}</option>`}
 function assignSlot(i,pid){let t=team(manager().team),other=t.lineupSlots.findIndex((x,j)=>j!==i&&x.playerId===pid);if(other>=0)t.lineupSlots[other].playerId=t.lineupSlots[i].playerId;t.lineupSlots[i].playerId=pid;t.players.forEach(p=>p.starter=t.lineupSlots.some(s=>s.playerId===p.id));save();squad()}
-function fieldLineup(t){let layout=FIELD_LAYOUTS[t.formation]||FIELD_LAYOUTS['4-3-3'];return `<div class="field">${layout.map((s,i)=>{let current=t.lineupSlots[i]?.playerId||'',opts=t.players.filter(p=>availableForMatch(p)||p.id===current).sort((a,b)=>(a.pos===s[0]?0:1)-(b.pos===s[0]?0:1)||effectiveRating(b)-effectiveRating(a));return `<div class="slot" style="left:${s[1]}%;top:${s[2]}%"><div class="slot-label">${s[0]}</div><select onchange="assignSlot(${i},this.value)">${opts.map(p=>playerOption(p,s[0]).replace(`value=\"${p.id}\"`,`value=\"${p.id}\" ${p.id===current?'selected':''}`)).join('')}</select></div>`}).join('')}</div>`}
 function setRole(k,id){let t=team(manager().team);t.roles[k]=id;save();squad()}
 function roleSelectors(t){return `<div class="role-grid">${ROLE_KEYS.map((k,i)=>`<div class="tactic-box"><label>${ROLE_NAMES[i]}</label><select onchange="setRole('${k}',this.value)">${t.players.filter(p=>p.starter).map(p=>`<option value="${p.id}" ${t.roles[k]===p.id?'selected':''}>${p.name}</option>`).join('')}</select></div>`).join('')}</div>`}
 function contractClass(y){return y<=1?'contract-danger':y===2?'contract-warn':''}
 function renewContract(pid){let t=team(manager().team),p=t.players.find(x=>x.id===pid);if(!p)return;let years=+(prompt('Renovar por quantos anos?','3')||0);if(years<1||years>5)return;let ask=Math.round(p.salary*(1.08+Math.max(0,p.form-6.5)*.06));let newSalary=+(prompt(`Salário pedido por mês: ${fmt(ask)}. Digite sua oferta:`,ask)||0);if(newSalary<ask*.9)return alert('O jogador recusou a proposta.');p.salary=newSalary;p.contractYears=years;p.morale=Math.min(100,p.morale+5);S.news.unshift(`${p.name} renovou com o ${t.name} por ${years} temporada(s).`);save();squad()}
 function monthlyPayroll(t){return t.players.reduce((s,p)=>s+(p.salary||0),0)}
-function squad(){ensureV14();let t=team(manager().team),starters=t.players.filter(p=>p.starter).length;$('content').innerHTML=`<div class="card"><h2>Elenco — ${t.name}</h2><div class="tactical-grid"><div class="tactic-box"><label>Formação</label><select onchange="setFormationV14(this.value)">${Object.keys(FIELD_LAYOUTS).map(f=>`<option ${t.formation===f?'selected':''}>${f}</option>`).join('')}</select></div><div class="tactic-box"><label>Tipo de tática</label><select onchange="setTactic(this.value)">${Object.keys(TACTICS).map(x=>`<option ${t.tactic===x?'selected':''}>${x}</option>`).join('')}</select></div><div class="tactic-box"><b>Folha mensal</b><p>${fmt(monthlyPayroll(t))}</p><button class="btn primary" onclick="autoLineupV14()">Melhor escalação</button></div></div>${roleSelectors(t)}${fieldLineup(t)}</div><div class="card"><h3>Banco e contratos</h3>${[...t.players].sort((a,b)=>b.starter-a.starter||effectiveRating(b)-effectiveRating(a)).map(p=>`<div class="player"><div><b>${p.name}</b><br><span class="muted">${p.age} anos • Moral ${p.morale} • Condição ${Math.round(p.fitness)}% • Forma ${p.form.toFixed(1)} • Salário ${fmt(p.salary)}/mês</span>${p.injury?`<br><span class="injury-badge">${injuryText(p)}</span>`:''}${p.suspended?`<br><span class="risk-badge">Suspenso por ${p.suspended} jogo(s)</span>`:''}</div><span class="pill">${p.pos}</span><b>${effectiveRating(p).toFixed(1)}</b><span class="hideMob ${contractClass(p.contractYears)}">Contrato ${p.contractYears} ano(s)</span><span><button class="btn small" onclick="renewContract('${p.id}')">Renovar</button> <button class="btn small" onclick="listPlayer('${p.id}')">${p.listed?'Retirar':'Vender'}</button></span></div>`).join('')}</div>`}
 function setFormationV14(v){let t=team(manager().team);t.formation=v;syncSlotsFromStarters(t);autoLineupV14()}
-function autoLineupV14(){let t=team(manager().team),layout=FIELD_LAYOUTS[t.formation]||FIELD_LAYOUTS['4-3-3'],used=new Set();t.lineupSlots=layout.map(s=>{let pool=t.players.filter(p=>!used.has(p.id)&&availableForMatch(p)&&!p.suspended).sort((a,b)=>((b.pos===s[0]?5:0)+effectiveRating(b))-((a.pos===s[0]?5:0)+effectiveRating(a)));let p=pool[0];if(p)used.add(p.id);return{role:s[0],playerId:p?.id||null}});t.players.forEach(p=>{p.starter=t.lineupSlots.some(s=>s.playerId===p.id);p.substitute=!p.starter});save();squad()}
 function availableForMatch(p){return (!p.injury||p.injury.gamesLeft<=0||p.playInjured)&&!(p.suspended>0)}
 function tacticalFit(t,players){let slots=t.lineupSlots||[],score=0;if(slots.length){slots.forEach(s=>{let p=t.players.find(x=>x.id===s.playerId);if(p)score+=p.pos===s.role?1:.55});return (score/11-.65)*7}return 0}
 function board(){ensureV14();let t=team(manager().team),b=t.board,cls=b.confidence>=65?'board-good':b.confidence>=40?'board-mid':'board-bad';$('content').innerHTML=`<div class="card ${cls}"><h2>Diretoria — Confiança ${b.confidence}%</h2><div class="progress"><span style="width:${b.confidence}%"></span></div><h3 style="margin-top:15px">Objetivos</h3>${b.targets.map(x=>`<div class="news">🎯 ${x}</div>`).join('')}<div class="kpis"><div class="kpi">Posição atual<b>${pos(t)}º</b></div><div class="kpi">Saldo desde o início<b>${fmt(t.cash-b.startCash)}</b></div><div class="kpi">Folha mensal<b>${fmt(monthlyPayroll(t))}</b></div><div class="kpi">Status<b>${b.confidence<30?'Em risco':b.confidence<55?'Pressionado':'Seguro'}</b></div></div><p class="muted">A confiança sobe com vitórias, boa situação financeira, uso da base e cumprimento dos objetivos. Abaixo de 20%, o técnico pode ser demitido.</p></div>`}
@@ -522,21 +412,15 @@ function academy(){ensureV14();let t=team(manager().team),a=t.academy,cost=a.lev
 function scoutYouth(){let t=team(manager().team),a=t.academy;if(S.round-a.lastScoutRound<4)return alert('Os olheiros precisam de mais tempo.');let count=rand(2,4);a.prospects=[];for(let i=0;i<count;i++){let age=rand(16,19),rating=rand(49+a.level*2,58+a.level*3),potential=Math.min(94,rating+rand(8,18));a.prospects.push({name:FIRST_NAMES[rand(0,FIRST_NAMES.length-1)]+' '+LAST_NAMES[rand(0,LAST_NAMES.length-1)],pos:POSITIONS[rand(0,POSITIONS.length-1)],age,rating,potential,value:marketBaseValue({rating,age},t.division),salary:12000+a.level*3000})}a.lastScoutRound=S.round;save();academy()}
 function promoteYouth(i){let t=team(manager().team),p=t.academy.prospects[i];if(!p)return;p.id=`Y-${t.id}-${Date.now()}-${i}`;p.contractYears=3;p.morale=85;p.fitness=100;p.form=6.5;p.starter=false;p.substitute=true;p.goals=p.assists=p.appearances=p.yellow=p.red=p.yellowAcc=p.suspended=p.minutes=0;p.injury=null;p.listed=false;t.players.push(p);t.academy.prospects.splice(i,1);t.board.confidence=Math.min(100,t.board.confidence+2);S.news.unshift(`${t.name} promoveu ${p.name}, ${p.age} anos, da base.`);save();academy()}
 function upgradeAcademy(){let t=team(manager().team),c=t.academy.level*2500000;if(t.cash<c)return alert('Caixa insuficiente.');if(t.academy.level>=5)return alert('Base no nível máximo.');t.cash-=c;t.academy.level++;save();academy()}
-function stats(){ensureV14();let all=S.teams.flatMap(t=>t.players.map(p=>({p,t}))),goals=[...all].sort((a,b)=>(b.p.goals||0)-(a.p.goals||0)).slice(0,15),assists=[...all].sort((a,b)=>(b.p.assists||0)-(a.p.assists||0)).slice(0,15),ratings=[...all].filter(x=>x.p.appearances>0).sort((a,b)=>(b.p.form||0)-(a.p.form||0)).slice(0,15);let list=(title,arr,key)=>`<div class="card"><h3>${title}</h3>${arr.map((x,i)=>`<div class="player"><div>${crest(x.t)}<b>${i+1}. ${x.p.name}</b><br><span class="muted">${x.t.name}</span></div><span class="pill">${x.p.pos}</span><b>${key==='form'?x.p.form.toFixed(1):x.p[key]||0}</b><span></span><span></span></div>`).join('')}</div>`;$('content').innerHTML=`<div class="stat-grid">${list('Artilharia',goals,'goals')}${list('Assistências',assists,'assists')}${list('Melhores médias',ratings,'form')}</div><div class="card"><h3>Histórico de transferências</h3>${S.transferLog.slice(0,30).map(x=>`<div class="news">${x}</div>`).join('')||'<p class="muted">Nenhuma transferência registrada.</p>'}</div>`}
 function aiWillSell(seller,p,offer){let depth=seller.players.filter(x=>x.pos===p.pos).length,need=p.starter?1.2:1,age=p.age>=30?.92:1.08,form=p.form>7.2?1.15:p.form<6?.9:1,contract=p.contractYears<=1?.85:1;let minimum=p.value*need*age*form*contract;if(depth<=2&&p.starter)minimum*=1.25;if(seller.cash<0)minimum*=.85;return{accept:offer>=minimum,min:Math.round(minimum/50000)*50000}}
 function buy(pid,oid){let buyer=team(manager().team),seller=team(oid),p=seller.players.find(x=>x.id===pid);if(!p)return;let proposal=+(prompt(`Valor de mercado: ${fmt(p.value)}. Faça sua proposta:`,Math.round(p.value*.95))||0);if(!proposal)return;if(buyer.cash<proposal)return alert('Caixa insuficiente.');let decision=aiWillSell(seller,p,proposal);if(!decision.accept){if(Math.random()<.65){let counter=decision.min;let ok=confirm(`${seller.name} recusou e fez contraproposta de ${fmt(counter)}. Aceitar?`);if(!ok||buyer.cash<counter)return;proposal=counter}else return alert(`${seller.name} não quer vender o jogador.`)}let wage=+(prompt(`Negocie o salário mensal de ${p.name}. Pedido: ${fmt(Math.round(p.salary*1.12))}`,Math.round(p.salary*1.12))||0);if(wage<p.salary*1.02)return alert('O jogador recusou o salário.');buyer.cash-=proposal;seller.cash+=proposal;seller.players=seller.players.filter(x=>x.id!==pid);p.salary=wage;p.contractYears=rand(3,5);p.starter=false;p.listed=false;buyer.players.push(p);let msg=`${buyer.name} contratou ${p.name}, do ${seller.name}, por ${fmt(proposal)}.`;S.news.unshift(msg);S.transferLog.unshift(msg);save();market()}
 function buyForeign(pid){let buyer=team(manager().team),p=S.globalMarket.find(x=>x.id===pid);if(!p||p.bought)return;let proposal=+(prompt(`Valor estimado: ${fmt(p.value)}. Faça sua proposta:`,p.value)||0);if(proposal<p.value*.9)return alert('O clube recusou a oferta.');if(buyer.cash<proposal)return alert('Caixa insuficiente.');let wage=Math.max(30000,Math.round(proposal/900));buyer.cash-=proposal;p.bought=true;let np={...p,id:'F-'+p.id+'-'+Date.now(),salary:wage,contractYears:4,morale:75,potential:Math.min(94,p.rating+3),starter:false,substitute:true,goals:0,assists:0,appearances:0,form:6.5,fitness:100,valueTrend:0,yellow:0,yellowAcc:0,red:0,suspended:0,minutes:0,injury:null,listed:false};buyer.players.push(np);let msg=`${buyer.name} contratou ${p.name}, do ${p.club}, por ${fmt(proposal)}.`;S.news.unshift(msg);S.transferLog.unshift(msg);save();market()}
-function aiTransferWindow(){let moves=rand(2,6);for(let i=0;i<moves;i++){let buyers=S.teams.filter(t=>t.cash>5e6),buyer=buyers[rand(0,buyers.length-1)];if(!buyer)continue;let sellers=S.teams.filter(t=>t.id!==buyer.id),seller=sellers[rand(0,sellers.length-1)];let candidates=seller.players.filter(p=>p.listed||!p.starter||p.contractYears<=1);if(!candidates.length)continue;let p=candidates[rand(0,candidates.length-1)],offer=Math.round(p.value*(.88+Math.random()*.3)/50000)*50000,d=aiWillSell(seller,p,offer);if(!d.accept||buyer.cash<offer)continue;buyer.cash-=offer;seller.cash+=offer;seller.players=seller.players.filter(x=>x.id!==p.id);p.starter=false;p.contractYears=rand(2,4);buyer.players.push(p);let msg=`${buyer.name} contratou ${p.name}, do ${seller.name}, por ${fmt(offer)}.`;S.transferLog.unshift(msg);S.news.unshift(msg)}}
 function chooseBench(t){return t.players.filter(p=>!p.starter&&availableForMatch(p)).sort((a,b)=>effectiveRating(b)-effectiveRating(a)).slice(0,9)}
-function substitutionsUI(){let t=team(manager().team);if(!live||!live.active)return '';let out=t.players.filter(p=>p.starter&&availableForMatch(p)),bench=chooseBench(t);return `<div class="card"><h3>Substituições (${live.userSubs||0}/5)</h3><div class="sub-panel"><select id="subOut">${out.map(p=>`<option value="${p.id}">${p.name} — ${p.pos} (${Math.round(p.fitness)}%)</option>`).join('')}</select><select id="subIn">${bench.map(p=>`<option value="${p.id}">${p.name} — ${p.pos} (${Math.round(p.fitness)}%)</option>`).join('')}</select></div><button class="btn primary" onclick="makeSubstitution()">Fazer substituição</button></div>`}
-function makeSubstitution(){if(!live||!live.active||live.userSubs>=5)return alert('Limite de substituições atingido.');let t=team(manager().team),out=t.players.find(p=>p.id===$('subOut').value),inn=t.players.find(p=>p.id===$('subIn').value);if(!out||!inn)return;out.starter=false;inn.starter=true;inn.minutes=(inn.minutes||0)+(90-live.minute);live.userSubs=(live.userSubs||0)+1;live.events.unshift({min:live.minute,type:'sub',teamId:t.id,division:t.division,text:`🔄 ${t.name}: sai ${out.name}, entra ${inn.name}.`});render('gameplay')}
 const gameplayV13=gameplay;gameplay=function(){gameplayV13();if(live&&$('content'))$('content').insertAdjacentHTML('beforeend',substitutionsUI())}
 const startLiveV13=startLive;startLive=function(){ensureV14();let t=team(manager().team);let invalid=t.players.filter(p=>p.starter&&!availableForMatch(p));if(invalid.length){alert(`Revise a escalação: ${invalid.map(p=>p.name).join(', ')} não pode jogar.`);setActiveNav('squad');return squad()}if(t.players.filter(p=>p.starter).length!==11){alert('É necessário escalar exatamente 11 titulares.');setActiveNav('squad');return squad()}startLiveV13();if(live)live.userSubs=0}
 function processCardsAndContracts(t){t.players.forEach(p=>{if(p.yellowAcc>=3){p.suspended=Math.max(p.suspended,1);p.yellowAcc=0;S.news.unshift(`${p.name}, do ${t.name}, está suspenso por acúmulo de cartões.`)}if(p.matchSentOff){p.suspended=Math.max(p.suspended,1)}else if(p.suspended>0)p.suspended--;})}
-function evolvePlayers(t){t.players.forEach(p=>{let usage=p.appearances?Math.min(1,p.minutes/(p.appearances*90)):0,dev=(p.potential-p.rating)*.018*(p.age<=23?1.4:p.age<=27?.7:.15),performance=(p.form-6.5)*.025,bench=p.appearances===0&&p.age<24?.04:0,decline=p.age>=32?(p.age-31)*.025:0;p.rating=Math.max(45,Math.min(p.potential,Math.round((p.rating+dev+performance+bench-decline)*10)/10));p.morale=Math.max(20,Math.min(100,p.morale+(p.starter?rand(-1,2):rand(-3,1))));})}
 function payWages(){S.teams.forEach(t=>{let weekly=monthlyPayroll(t)/4;t.cash-=weekly;t.wageSpent+=weekly})}
 function updateBoardAfterRound(t,result){let b=t.board;b.confidence=Math.max(0,Math.min(100,b.confidence+(result>0?2:result===0?0:-2)+(t.cash<0?-2:0)));if(b.confidence<20&&t.id===manager().team){b.warning=true;S.news.unshift(`⚠️ A diretoria do ${t.name} convocou reunião de emergência. O emprego está em risco.`)}}
-function generateCupRound(){if(!S.cup.active||S.round%5!==2)return;let teams=[...S.teams].sort(()=>Math.random()-.5).slice(0,32),pairs=[];for(let i=0;i<teams.length;i+=2){let a=teams[i],b=teams[i+1],sa=strength(a)+Math.random()*8,sb=strength(b)+Math.random()*8,hg=Math.max(0,Math.round((sa-sb)/12+Math.random()*2)),ag=Math.max(0,Math.round((sb-sa)/12+Math.random()*2));if(hg===ag)Math.random()<.5?hg++:ag++;let win=hg>ag?a:b;pairs.push(`${a.name} ${hg} x ${ag} ${b.name}`);win.cash+=1500000}S.cup.history.unshift({season:S.season,round:S.round+1,games:pairs});S.news.unshift(`🏆 Copa do Brasil: rodada eliminatória disputada. Confira os resultados nas notícias.`)}
 const finishRoundV13=finishRound;finishRound=function(){let beforeRound=S.round,my=team(manager().team),myGame=live.games.find(g=>g.home===my.id||g.away===my.id),res=0;if(myGame){let gf=myGame.home===my.id?myGame.hg:myGame.ag,ga=myGame.home===my.id?myGame.ag:myGame.hg;res=gf>ga?1:gf===ga?0:-1}live.games.forEach(g=>{[team(g.home),team(g.away)].forEach(t=>{t.players.filter(p=>p.starter).forEach(p=>{p.minutes=(p.minutes||0)+90;p.yellowAcc=(p.yellowAcc||0)+(p.yellow||0);p.yellow=0})})});finishRoundV13();payWages();S.teams.forEach(t=>{processCardsAndContracts(t);evolvePlayers(t)});updateBoardAfterRound(my,res);if(beforeRound%3===0)aiTransferWindow();generateCupRound();save()}
 const resetStatsV13=resetStats;resetStats=function(){S.teams.forEach(t=>t.players.forEach(p=>{p.contractYears--;if(p.contractYears<=0){p.listed=true;p.transferInterest=100}}));resetStatsV13();S.teams.forEach(t=>{evolvePlayers(t);t.board=makeBoard(t)})}
 const homeV13=home;home=function(){ensureV14();homeV13();let t=team(manager().team);$('content').insertAdjacentHTML('beforeend',`<div class="card"><h3>Resumo financeiro</h3><div class="kpis"><div class="kpi">Folha mensal<b>${fmt(monthlyPayroll(t))}</b></div><div class="kpi">Gasto salarial<b>${fmt(t.wageSpent||0)}</b></div><div class="kpi">Confiança da diretoria<b>${t.board.confidence}%</b></div><div class="kpi">Nível da base<b>${t.academy.level}</b></div></div></div>${S.cup.history.length?`<div class="card"><h3>Última rodada da Copa do Brasil</h3>${S.cup.history[0].games.slice(0,12).map(x=>`<div class="news">${x}</div>`).join('')}</div>`:''}`)}
@@ -553,7 +437,6 @@ const FIELD_LAYOUTS_V15={
  "5-3-2":[["GOL",50,91],["LE",8,64],["ZAG",28,73],["ZAG",50,78],["ZAG",72,73],["LD",92,64],["VOL",34,48],["MC",50,42],["MEI",66,48],["ATA",37,19],["ATA",63,19]]
 };
 Object.assign(FIELD_LAYOUTS,FIELD_LAYOUTS_V15);
-function fieldLineup(t){let layout=FIELD_LAYOUTS[t.formation]||FIELD_LAYOUTS['4-3-3'];if(!t.lineupSlots||t.lineupSlots.length!==11)syncSlotsFromStarters(t);return `<div class="field"><div class="goal-box top"></div><div class="goal-box bottom"></div><div class="center-circle"></div><div class="center-dot"></div>${layout.map((s,i)=>{let current=t.lineupSlots[i]?.playerId||'',opts=t.players.filter(p=>availableForMatch(p)||p.id===current).sort((a,b)=>(a.pos===s[0]?0:1)-(b.pos===s[0]?0:1)||effectiveRating(b)-effectiveRating(a));return `<div class="slot ${s[0]==='GOL'?'gk':''}" style="left:${s[1]}%;top:${s[2]}%"><div class="slot-label">${s[0]}</div><select onchange="assignSlot(${i},this.value)">${opts.map(p=>playerOption(p,s[0]).replace(`value=\"${p.id}\"`,`value=\"${p.id}\" ${p.id===current?'selected':''}`)).join('')}</select></div>`}).join('')}</div>`}
 function repairLineup(t){
  if(!t.lineupSlots||t.lineupSlots.length!==11)syncSlotsFromStarters(t);
  const valid=new Set(t.players.map(p=>p.id)),used=new Set();
@@ -567,17 +450,25 @@ function removePlayerFromTeam(t,p){t.players=t.players.filter(x=>x.id!==p.id);if
 function strength(t){let p=t.players.filter(x=>x.starter&&availableForMatch(x)&&!x.matchSentOff&&!x.matchInjuredOut);if(p.length<7)return 35;let base=p.reduce((s,x)=>s+effectiveRating(x),0)/p.length;let fit=tacticalFit(t,p);let missing=Math.max(0,11-p.length);return base+fit-missing*2.8}
 function initMatchPlayer(p){p.matchMinutes=0;p.matchGoals=0;p.matchAssists=0;p.matchYellows=0;p.matchSentOff=false;p.matchInjuredOut=false;p.wasStarter=!!p.starter;p.enteredAt=p.starter?0:null;p.leftAt=null}
 function initializeMatchState(){S.teams.forEach(t=>t.players.forEach(initMatchPlayer))}
-function scoreGoal(g,t,isHome,min,label="gol"){if(isHome)g.hg++;else g.ag++;let p=attacker(t);if(p){p.goals=(p.goals||0)+1;p.matchGoals=(p.matchGoals||0)+1;eventPush(g,min,label==="penalty"?"penalty":"goal",t.id,label==="penalty"?`⚽ PÊNALTI! ${p.name} converte para o ${t.name}.`:`⚽ GOL do ${t.name}! ${p.name} balança a rede.`)}}
 function markLiveMinute(){if(!live)return;live.games.forEach(g=>[team(g.home),team(g.away)].forEach(t=>t.players.filter(p=>p.starter&&!p.matchSentOff&&!p.matchInjuredOut).forEach(p=>p.matchMinutes=(p.matchMinutes||0)+1)))}
 function liveTick(){if(!live||!live.active||live.paused)return;for(let i=0;i<live.speed;i++){live.minute++;markLiveMinute();live.games.forEach(g=>tick(g,live.minute));if(live.minute>=90){clearInterval(live.timer);live.active=false;live.finished=true;finishRound();return}}drawLive()}
-function makeSubstitution(){if(!live||!live.active||live.userSubs>=5)return alert('Limite de substituições atingido.');let t=team(manager().team),out=t.players.find(p=>p.id===$('subOut')?.value),inn=t.players.find(p=>p.id===$('subIn')?.value);if(!out||!inn||!out.starter||inn.starter)return;out.starter=false;out.leftAt=live.minute;inn.starter=true;inn.enteredAt=live.minute;inn.matchMinutes=inn.matchMinutes||0;live.userSubs=(live.userSubs||0)+1;let slot=t.lineupSlots?.find(s=>s.playerId===out.id);if(slot)slot.playerId=inn.id;live.events.unshift({min:live.minute,type:'sub',teamId:t.id,division:t.division,text:`🔄 ${t.name}: sai ${out.name}, entra ${inn.name}.`});render('gameplay')}
 const tickV14=tick;tick=function(g,min){
  let before=live.events.length;tickV14(g,min);
  let fresh=live.events.slice(0,live.events.length-before);
  fresh.forEach(e=>{if(e.type==='cardev'){let t=team(e.teamId),p=t?.players.find(x=>e.text.includes(x.name));if(p){p.matchYellows=(p.matchYellows||0)+1;if(p.matchYellows>=2&&!p.matchSentOff){p.matchSentOff=true;p.starter=false;e.text+=` Segundo amarelo: ${p.name} está expulso.`}}}if(e.type==='redcard'){let t=team(e.teamId),p=t?.players.find(x=>e.text.includes(x.name));if(p){p.matchSentOff=true;p.starter=false}}if(e.type==='injury'){let t=team(e.teamId),p=t?.players.find(x=>e.text.includes(x.name));if(p&&!p.playInjured){p.matchInjuredOut=true;p.starter=false}}});
 }
 function startLive(){
- ensureV14();let t=team(manager().team);repairLineup(t);let invalid=t.players.filter(p=>p.starter&&!availableForMatch(p));if(invalid.length){alert(`Revise a escalação: ${invalid.map(p=>p.name).join(', ')} não pode jogar.`);setActiveNav('squad');return squad()}if(t.players.filter(p=>p.starter).length!==11){alert('É necessário escalar exatamente 11 titulares.');setActiveNav('squad');return squad()}if(live&&live.active){setActiveNav('gameplay');return render('gameplay')}S.turn=0;initializeMatchState();let games=['A','B','C'].flatMap(d=>S.schedules[d][S.round].map(g=>(g.division=d,g)));live={minute:0,games,events:[],speed:1,paused:false,active:true,finished:false,userSubs:0};setActiveNav('gameplay');render('gameplay');live.timer=setInterval(liveTick,600)
+ ensureV14();let t=team(manager().team);repairLineup(t);let invalid=t.players.filter(p=>p.starter&&!availableForMatch(p));if(invalid.length){alert(`Revise a escalação: ${invalid.map(p=>p.name).join(', ')} não pode jogar.`);setActiveNav('squad');return squad()}if(t.players.filter(p=>p.starter).length!==11){alert('É necessário escalar exatamente 11 titulares.');setActiveNav('squad');return squad()}if(live&&live.active){setActiveNav('gameplay');return render('gameplay')}
+ let savedRound=Number.isFinite(Number(S.round))?Number(S.round):0;
+ let completed=Number.isFinite(Number(S.lastCompletedRound))?Number(S.lastCompletedRound):-1;
+ let roundIndex=Math.max(savedRound,completed+1);
+ if(roundIndex>=38){endSeason();return}
+ S.round=roundIndex;S.turn=0;initializeMatchState();
+ let games=['A','B','C'].flatMap(d=>(S.schedules?.[d]?.[roundIndex]||[]).map(g=>({...g,division:d,hg:0,ag:0,played:false})));
+ if(!games.length){alert('Não foi possível localizar os jogos da próxima rodada.');return}
+ let fixtureKey=games.map(g=>`${g.division}:${g.home}-${g.away}`).sort().join('|');
+ live={minute:0,games,events:[],speed:1,paused:false,active:true,finished:false,processed:false,userSubs:0,roundIndex,fixtureKey};
+ setActiveNav('gameplay');render('gameplay');live.timer=setInterval(liveTick,600)
 }
 function updatePlayerPerformanceV15(t,g,isHome){let scored=isHome?g.hg:g.ag,conceded=isHome?g.ag:g.hg,result=scored>conceded?1:scored===conceded?0:-1;t.players.forEach(p=>{let mins=p.matchMinutes||0;if(mins<=0)return;p.appearances=(p.appearances||0)+1;p.minutes=(p.minutes||0)+mins;let match=6.25+result*.42+(p.matchGoals||0)*.65+(p.matchAssists||0)*.35-(p.matchSentOff?.8:0)-(p.matchYellows||0)*.08+(Math.random()-.5)*.45;p.matchRating=Math.max(3.5,Math.min(10,match));p.seasonRating=((p.seasonRating||6.5)*(p.appearances-1)+p.matchRating)/p.appearances;p.form=Math.max(4.5,Math.min(9.5,(p.form||6.5)*.75+p.matchRating*.25));let ageFactor=p.age<=23?.004:p.age>=32?-.003:0,perf=(p.matchRating-6.5)*.006+ageFactor,old=p.value;p.value=Math.max(200000,Math.round(old*(1+Math.max(-.025,Math.min(.035,perf)))/50000)*50000);p.valueTrend=old?((p.value-old)/old*100):0})}
 function updateFitnessAfterMatchV15(t){let tactic=TACTICS[t.tactic]||TACTICS['Equilibrada'];t.players.forEach(p=>{let mins=p.matchMinutes||0;if(mins>0){let loss=(mins/90)*(rand(7,12)+(t.tactic==='Pressão alta'?3:t.tactic==='Ofensiva'?1:0));p.fitness=Math.max(38,p.fitness-loss)}else{let gain=p.injury&&p.injury.gamesLeft>0?rand(3,6):rand(8,13);p.fitness=Math.min(100,p.fitness+gain)}p.lastPower=effectiveRating(p)})}
@@ -592,41 +483,31 @@ function initCupBracket(){let entrants=[...S.teams].sort(()=>Math.random()-.5).s
 function generateCupRound(){if(!S.cup||!S.cup.entrants)initCupBracket();if(!S.cup.active||S.round!==S.cup.nextRoundAt)return;let ids=S.cup.entrants,winners=[],games=[];for(let i=0;i<ids.length;i+=2){let a=team(ids[i]),b=team(ids[i+1]);if(!a||!b)continue;let sa=strength(a)+Math.random()*8,sb=strength(b)+Math.random()*8,hg=Math.max(0,Math.round((sa-sb)/12+Math.random()*2)),ag=Math.max(0,Math.round((sb-sa)/12+Math.random()*2));if(hg===ag)Math.random()<.5?hg++:ag++;let win=hg>ag?a:b;winners.push(win.id);games.push(`${a.name} ${hg} x ${ag} ${b.name}`);win.cash+=1500000}S.cup.history.unshift({season:S.season,stage:S.cup.stage,games});S.cup.entrants=winners;if(winners.length===1){S.cup.active=false;S.cup.champion=winners[0];team(winners[0]).cash+=10000000;S.news.unshift(`🏆 ${team(winners[0]).name} é campeão da Copa do Brasil!`)}else{S.cup.stage=winners.length===16?'Oitavas':winners.length===8?'Quartas':winners.length===4?'Semifinal':'Final';S.cup.nextRoundAt=S.round+5;S.news.unshift(`🏆 Copa do Brasil: ${S.cup.stage} definida.`)}}
 function processExpiredContracts(){if(!S.freeAgents)S.freeAgents=[];S.teams.forEach(t=>{[...t.players].forEach(p=>{p.contractYears=(p.contractYears||1)-1;if(p.contractYears<=0){let renewChance=p.morale/100+(p.starter?.2:0);if(Math.random()<renewChance*.55){p.contractYears=rand(1,3);p.salary=Math.round(p.salary*1.08/1000)*1000}else{removePlayerFromTeam(t,p);p.starter=false;p.listed=false;p.freeAgent=true;S.freeAgents.push(p);S.news.unshift(`${p.name} deixou o ${t.name} ao fim do contrato e está livre no mercado.`)}}})})}
 function finishRound(){
- live.games.forEach(g=>{g.played=true;let h=team(g.home),a=team(g.away);h.played++;a.played++;h.gf+=g.hg;h.ga+=g.ag;a.gf+=g.ag;a.ga+=g.hg;if(g.hg>g.ag){h.w++;h.pts+=3;a.l++}else if(g.ag>g.hg){a.w++;a.pts+=3;h.l++}else{h.d++;a.d++;h.pts++;a.pts++}updatePlayerPerformanceV15(h,g,true);updatePlayerPerformanceV15(a,g,false);updateFitnessAfterMatchV15(h);updateFitnessAfterMatchV15(a);let gate=stadiumIncome(h,g);if(h.id===manager().team&&gate)S.news.unshift(`${h.name} arrecadou ${fmt(gate)} com ${h.stadium.lastAttendance.toLocaleString('pt-BR')} torcedores no estádio.`);[h,a].forEach(t=>{t.cash+=(t.division==='A'?2.2:t.division==='B'?.9:.4)*1e6;recoverInjuriesV15(t);processDisciplineAfterRound(t);repairLineup(t)})});
- let m=manager(),my=team(m.team),myGame=live.games.find(g=>g.home===my.id||g.away===my.id);if(myGame){let gf=myGame.home===my.id?myGame.hg:myGame.ag,ga=myGame.home===my.id?myGame.ag:myGame.hg;if(gf>ga){m.careerPoints+=3;m.reputation=Math.min(100,m.reputation+1)}else if(gf===ga)m.careerPoints+=1;else m.reputation=Math.max(1,m.reputation-(Math.random()<.2?1:0))}S.news.unshift(`Rodada ${S.round+1} da temporada ${S.season} concluída.`);S.round++;payWages();S.teams.forEach(evaluateBoard);if(S.round%3===0)aiTransferWindow();generateCupRound();maybeGenerateOffers();if(S.round>=38)endSeason();else{save();setTimeout(()=>{alert('Fim da rodada.');setActiveNav('gameplay');render('gameplay');let c=$('content');if(c)c.insertAdjacentHTML('afterbegin',`<div class="card"><b>Rodada concluída.</b> Os placares, minutos e estatísticas foram salvos. <button class="btn primary small" onclick="goHomeAfterRound()">Continuar</button></div>`)},150)}}
+ if(!live||live.processed)return;
+ live.processed=true;
+ const playedRound=Number.isFinite(Number(live.roundIndex))?Number(live.roundIndex):(Number(S.round)||0);
+ live.games.forEach(g=>{g.played=true;let scheduled=S.schedules?.[g.division]?.[playedRound]?.find(x=>x.home===g.home&&x.away===g.away);if(scheduled)Object.assign(scheduled,{hg:g.hg,ag:g.ag,played:true});let h=team(g.home),a=team(g.away);h.played++;a.played++;h.gf+=g.hg;h.ga+=g.ag;a.gf+=g.ag;a.ga+=g.hg;if(g.hg>g.ag){h.w++;h.pts+=3;a.l++}else if(g.ag>g.hg){a.w++;a.pts+=3;h.l++}else{h.d++;a.d++;h.pts++;a.pts++}updatePlayerPerformanceV15(h,g,true);updatePlayerPerformanceV15(a,g,false);updateFitnessAfterMatchV15(h);updateFitnessAfterMatchV15(a);let gate=stadiumIncome(h,g);if(h.id===manager().team&&gate)S.news.unshift(`${h.name} arrecadou ${fmt(gate)} com ${h.stadium.lastAttendance.toLocaleString('pt-BR')} torcedores no estádio.`);[h,a].forEach(t=>{t.cash+=(t.division==='A'?2.2:t.division==='B'?.9:.4)*1e6;recoverInjuriesV15(t);processDisciplineAfterRound(t);repairLineup(t)})});
+ let m=manager(),my=team(m.team),myGame=live.games.find(g=>g.home===my.id||g.away===my.id);if(myGame){let gf=myGame.home===my.id?myGame.hg:myGame.ag,ga=myGame.home===my.id?myGame.ag:myGame.hg;if(gf>ga){m.careerPoints+=3;m.reputation=Math.min(100,m.reputation+1)}else if(gf===ga)m.careerPoints+=1;else m.reputation=Math.max(1,m.reputation-(Math.random()<.2?1:0))}S.news.unshift(`Rodada ${playedRound+1} da temporada ${S.season} concluída.`);S.lastCompletedRound=Math.max(Number(S.lastCompletedRound)||-1,playedRound);S.round=Math.max(Number(S.round)||0,playedRound+1);payWages();S.teams.forEach(evaluateBoard);if(S.round%3===0)aiTransferWindow();generateCupRound();maybeGenerateOffers();if(S.round>=38)endSeason();else{save();setTimeout(()=>{alert('Fim da rodada.');setActiveNav('gameplay');render('gameplay');let c=$('content');if(c)c.insertAdjacentHTML('afterbegin',`<div class="card"><b>Rodada concluída.</b> Os placares, minutos e estatísticas foram salvos. <button class="btn primary small" onclick="goHomeAfterRound()">Continuar</button></div>`)},150)}}
 const resetStatsOldV15=resetStats;resetStats=function(){processExpiredContracts();S.teams.forEach(t=>{evolvePlayers(t);t.played=t.w=t.d=t.l=t.gf=t.ga=t.pts=0;t.players.forEach(p=>{p.goals=p.assists=p.appearances=p.yellow=p.red=p.minutes=0;p.seasonRating=6.5;p.form=6.5;p.age++;p.value=Math.max(200000,Math.round(p.value*(p.age<24?1.025:p.age>31?.94:.995)/50000)*50000)});t.board=makeBoard(t);repairLineup(t)});initCupBracket()}
 
+
+function repairRoundProgress(){
+ if(!S)return;
+ S.round=Math.max(0,Number(S.round)||0);
+ if(!Number.isFinite(Number(S.lastCompletedRound)))S.lastCompletedRound=S.round-1;
+ S.lastCompletedRound=Math.max(-1,Math.min(37,Number(S.lastCompletedRound)));
+ if(S.round<=S.lastCompletedRound)S.round=S.lastCompletedRound+1;
+}
+repairRoundProgress();
 init();
 
 // V15.2: desenho do campo corrigido para orientação vertical
-function fieldLineup(t){
-  let layout=FIELD_LAYOUTS[t.formation]||FIELD_LAYOUTS['4-3-3'];
-  if(!t.lineupSlots||t.lineupSlots.length!==11)syncSlotsFromStarters(t);
-  return `<div class="field"><div class="goal-mouth top"></div><div class="goal-mouth bottom"></div><div class="goal-box top"></div><div class="goal-box bottom"></div><div class="six-box top"></div><div class="six-box bottom"></div><div class="center-circle"></div><div class="center-dot"></div><div class="penalty-dot top"></div><div class="penalty-dot bottom"></div><div class="penalty-arc top"></div><div class="penalty-arc bottom"></div><div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>${layout.map((s,i)=>{let current=t.lineupSlots[i]?.playerId||'',opts=t.players.filter(p=>availableForMatch(p)||p.id===current).sort((a,b)=>(a.pos===s[0]?0:1)-(b.pos===s[0]?0:1)||effectiveRating(b)-effectiveRating(a));return `<div class="slot ${s[0]==='GOL'?'gk':''}" style="left:${s[1]}%;top:${s[2]}%"><div class="slot-label">${s[0]}</div><select onchange="assignSlot(${i},this.value)">${opts.map(p=>playerOption(p,s[0]).replace(`value="${p.id}"`,`value="${p.id}" ${p.id===current?'selected':''}`)).join('')}</select></div>`}).join('')}</div>`;
-}
 
 
 // V15.3: posição sempre visível, alinhamento e destaque dos eventos do usuário
-function playerOption(p,role){
-  const position=p.pos||p.naturalPos||'SEM POS.';
-  const off=position!==role?' ⚠ improvisado':'';
-  return `<option value="${p.id}">${p.name} — ${position} (${effectiveRating(p).toFixed(1)})${off}</option>`;
-}
 function teamDisplay(t){
   const mine=t.id===manager().team;
   return `<span class="team-display">${crest(t)}<span>${t.name}${mine?'<span class="my-team-label">SEU TIME</span>':''}</span></span>`;
-}
-function drawLive(){
-  if(!live)return;
-  if($('clock'))$('clock').textContent=live.minute+"'";
-  ['A','B','C'].forEach(d=>{
-    const scores=$('scores'+d),log=$('log'+d);
-    if(!scores||!log)return;
-    const games=live.games.filter(g=>g.division===d);
-    scores.innerHTML=games.map(g=>`<div class="scoreline ${g.home===manager().team||g.away===manager().team?'human':''}"><div>${homeMark(g,g.home)}${teamDisplay(team(g.home))}</div><b>${g.hg} × ${g.ag}</b><div>${teamDisplay(team(g.away))}</div></div>`).join('');
-    const ev=live.events.filter(e=>e.division===d);
-    log.innerHTML=ev.map(e=>`<div class="event ${e.type} ${e.teamId===manager().team?'my-event':''}"><b>${e.min}'</b> ${e.text}</div>`).join('')||"<span class='muted'>A bola está rolando...</span>";
-  });
 }
 
 
@@ -666,28 +547,6 @@ function scoreGoal(g,t,isHome,min,label="gol"){
 
 
 // V15.5: seletor mostra somente jogadores da posição exigida
-function fieldLineup(t){
-  const layout=FIELD_LAYOUTS[t.formation]||FIELD_LAYOUTS['4-3-3'];
-  if(!t.lineupSlots||t.lineupSlots.length!==11)syncSlotsFromStarters(t);
-  const used=new Set();
-  t.lineupSlots.forEach((slot,i)=>{
-    const role=layout[i][0];
-    const current=t.players.find(p=>p.id===slot.playerId);
-    const currentPos=current?(current.naturalPos||current.pos):null;
-    if(!current||currentPos!==role||used.has(current.id)||!availableForMatch(current))slot.playerId=null;
-    else used.add(current.id);
-  });
-  t.lineupSlots.forEach((slot,i)=>{
-    if(slot.playerId)return;
-    const role=layout[i][0];
-    const candidate=t.players
-      .filter(p=>availableForMatch(p)&&!used.has(p.id)&&(p.naturalPos||p.pos)===role)
-      .sort((a,b)=>effectiveRating(b)-effectiveRating(a))[0];
-    if(candidate){slot.playerId=candidate.id;used.add(candidate.id)}
-  });
-  t.players.forEach(p=>p.starter=t.lineupSlots.some(s=>s.playerId===p.id));
-  return `<div class="field"><div class="goal-mouth top"></div><div class="goal-mouth bottom"></div><div class="goal-box top"></div><div class="goal-box bottom"></div><div class="six-box top"></div><div class="six-box bottom"></div><div class="center-circle"></div><div class="center-dot"></div><div class="penalty-dot top"></div><div class="penalty-dot bottom"></div><div class="penalty-arc top"></div><div class="penalty-arc bottom"></div><div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>${layout.map((s,i)=>{const role=s[0],current=t.lineupSlots[i]?.playerId||'',opts=t.players.filter(p=>availableForMatch(p)&&(p.naturalPos||p.pos)===role).sort((a,b)=>effectiveRating(b)-effectiveRating(a));return `<div class="slot ${role==='GOL'?'gk':''}" style="left:${s[1]}%;top:${s[2]}%"><div class="slot-label">${role}</div><select onchange="assignSlot(${i},this.value)"><option value="">Selecione ${role}</option>${opts.map(p=>`<option value="${p.id}" ${p.id===current?'selected':''}>${p.name} — ${p.naturalPos||p.pos} (${effectiveRating(p).toFixed(1)})</option>`).join('')}</select></div>`}).join('')}</div>`;
-}
 
 
 // ===== V15.6: ELENCO ORDENÁVEL, EVENTOS DO CONFRONTO E ABAS DA RODADA =====
@@ -701,19 +560,7 @@ function sortedSquadPlayers(t){
   if(squadOrder==='power')return arr.sort((a,b)=>effectiveRating(b)-effectiveRating(a)||((POSITION_ORDER[a.naturalPos||a.pos]??99)-(POSITION_ORDER[b.naturalPos||b.pos]??99)));
   return arr.sort((a,b)=>(POSITION_ORDER[a.naturalPos||a.pos]??99)-(POSITION_ORDER[b.naturalPos||b.pos]??99)||effectiveRating(b)-effectiveRating(a));
 }
-function squad(){
- ensureV14();
- const t=team(manager().team),players=sortedSquadPlayers(t);
- $('content').innerHTML=`<div class="card"><h2>Elenco — ${t.name}</h2><div class="tactical-grid"><div class="tactic-box"><label>Formação</label><select onchange="setFormationV14(this.value)">${Object.keys(FIELD_LAYOUTS).map(f=>`<option ${t.formation===f?'selected':''}>${f}</option>`).join('')}</select></div><div class="tactic-box"><label>Tipo de tática</label><select onchange="setTactic(this.value)">${Object.keys(TACTICS).map(x=>`<option ${t.tactic===x?'selected':''}>${x}</option>`).join('')}</select></div><div class="tactic-box"><b>Folha mensal</b><p>${fmt(monthlyPayroll(t))}</p><button class="btn primary" onclick="autoLineupV14()">Melhor escalação</button></div></div>${roleSelectors(t)}${fieldLineup(t)}</div><div class="card"><h3>Banco e contratos</h3><div class="squad-sort"><label>Organizar por<select onchange="setSquadOrder(this.value)"><option value="position" ${squadOrder==='position'?'selected':''}>Posição</option><option value="contract" ${squadOrder==='contract'?'selected':''}>Tempo de contrato</option><option value="power" ${squadOrder==='power'?'selected':''}>Poder atual</option></select></label></div>${players.map(p=>`<div class="player"><div><b>${p.name}</b><br><span class="muted">${p.age} anos • Moral ${p.morale} • Condição ${Math.round(p.fitness)}% • Forma ${p.form.toFixed(1)} • Salário ${fmt(p.salary)}/mês</span>${p.injury?`<br><span class="injury-badge">${injuryText(p)}</span>`:''}${p.suspended?`<br><span class="risk-badge">Suspenso por ${p.suspended} jogo(s)</span>`:''}</div><span class="pill">${p.naturalPos||p.pos||'SEM POS.'}</span><b>${effectiveRating(p).toFixed(1)}</b><span class="hideMob ${contractClass(p.contractYears)}">Contrato ${p.contractYears} ano(s)</span><span><button class="btn small" onclick="renewContract('${p.id}')">Renovar</button> <button class="btn small" onclick="listPlayer('${p.id}')">${p.listed?'Retirar':'Vender'}</button></span></div>`).join('')}</div>`;
-}
 function setGameplayDivision(d){gameplayDivision=d;gameplay()}
-function gameplay(){
- if(!live){$('content').innerHTML='<div class="card"><h2>Jogo</h2><p class="muted">Nenhuma rodada em andamento.</p><button class="btn primary" onclick="startLive()">Iniciar próxima rodada</button></div>';return}
- if(!gameplayDivision)gameplayDivision=team(manager().team).division||'A';
- const d=gameplayDivision;
- $('content').innerHTML=`<div class="card"><div id="clock" class="clock">${live.minute}'</div><div class="controls" style="justify-content:center"><button id="pause" class="btn" onclick="toggleLivePause()">${live.paused?'Continuar':'Pausar'}</button><button class="btn" onclick="changeLiveSpeed()">Velocidade ×<span id="speed">${live.speed}</span></button></div></div>${seriesTabs('gameplay',d)}<div class="live-full"><div class="card"><h2>Série ${d}</h2><h3>Eventos Série ${d}</h3><div id="log${d}" class="log"></div><h3 style="margin-top:12px">Central Série ${d}</h3><div id="scores${d}" class="scores"></div></div></div>${substitutionsUI()}`;
- drawLive();
-}
 const setSeriesViewV156=setSeriesView;
 setSeriesView=function(kind,d){if(kind==='gameplay')return setGameplayDivision(d);return setSeriesViewV156(kind,d)};
 function currentOpponentId(){
@@ -732,69 +579,14 @@ function drawLive(){
  scores.innerHTML=games.map(g=>`<div class="scoreline ${g.home===mine||g.away===mine?'human':''}"><div>${homeMark(g,g.home)}${teamDisplay(team(g.home))}</div><b>${g.hg} × ${g.ag}</b><div>${teamDisplay(team(g.away))}</div></div>`).join('');
  const ev=live.events.filter(e=>e.division===d);
  log.innerHTML=ev.map(e=>{let cls='';if(e.teamId===mine)cls='my-event';else if(e.teamId===opponent)cls='opponent-event';else if(opponent&&[mine,opponent].includes(e.teamId))cls='match-event';return `<div class="event ${e.type} ${cls}"><b>${e.min}'</b> ${e.text}</div>`}).join('')||"<span class='muted'>A bola está rolando...</span>";
+ if(typeof renderFocusedOnlineMatches==='function')renderFocusedOnlineMatches();
 }
 
 
 // ===== V15.7: IMPROVISAÇÃO DE EMERGÊNCIA E CENTRAL REDIMENSIONADA =====
-function fieldLineup(t){
-  const layout=FIELD_LAYOUTS[t.formation]||FIELD_LAYOUTS['4-3-3'];
-  if(!t.lineupSlots||t.lineupSlots.length!==11)syncSlotsFromStarters(t);
-  const used=new Set();
-  // Mantém escolhas válidas, inclusive improvisados; remove apenas indisponíveis ou duplicados.
-  t.lineupSlots.forEach(slot=>{
-    const p=t.players.find(x=>x.id===slot.playerId);
-    if(!p||!availableForMatch(p)||used.has(p.id))slot.playerId=null;
-    else used.add(p.id);
-  });
-  // Preenchimento automático: natural primeiro; quando não houver, improvisa o melhor disponível.
-  t.lineupSlots.forEach((slot,i)=>{
-    if(slot.playerId)return;
-    const role=layout[i][0];
-    const available=t.players.filter(p=>availableForMatch(p)&&!used.has(p.id));
-    const naturals=available.filter(p=>(p.naturalPos||p.pos)===role);
-    const candidate=(naturals.length?naturals:available).sort((a,b)=>effectiveRating(b)-effectiveRating(a))[0];
-    if(candidate){slot.playerId=candidate.id;used.add(candidate.id)}
-  });
-  t.players.forEach(p=>p.starter=t.lineupSlots.some(s=>s.playerId===p.id));
-  const markings='<div class="goal-mouth top"></div><div class="goal-mouth bottom"></div><div class="goal-box top"></div><div class="goal-box bottom"></div><div class="six-box top"></div><div class="six-box bottom"></div><div class="center-circle"></div><div class="center-dot"></div><div class="penalty-dot top"></div><div class="penalty-dot bottom"></div><div class="penalty-arc top"></div><div class="penalty-arc bottom"></div><div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>';
-  return `<div class="field">${markings}${layout.map((s,i)=>{
-    const role=s[0],current=t.lineupSlots[i]?.playerId||'';
-    const all=t.players.filter(p=>availableForMatch(p));
-    const naturals=all.filter(p=>(p.naturalPos||p.pos)===role);
-    let opts=naturals.length?naturals:all;
-    const currentPlayer=t.players.find(p=>p.id===current);
-    if(currentPlayer&&availableForMatch(currentPlayer)&&!opts.some(p=>p.id===currentPlayer.id))opts=[currentPlayer,...opts];
-    opts=[...new Map(opts.map(p=>[p.id,p])).values()].sort((a,b)=>effectiveRating(b)-effectiveRating(a));
-    const emergency=naturals.length===0;
-    return `<div class="slot ${role==='GOL'?'gk':''}" style="left:${s[1]}%;top:${s[2]}%"><div class="slot-label">${role}${emergency?' ⚠':''}</div><select onchange="assignSlot(${i},this.value)"><option value="">Selecione ${role}</option>${opts.map(p=>`<option value="${p.id}" ${p.id===current?'selected':''}>${p.name} — ${p.naturalPos||p.pos}${(p.naturalPos||p.pos)!==role?' (improvisado)':''} (${effectiveRating(p).toFixed(1)})</option>`).join('')}</select></div>`
-  }).join('')}</div>`;
-}
-function gameplay(){
- if(!live){$('content').innerHTML='<div class="card"><h2>Jogo</h2><p class="muted">Nenhuma rodada em andamento.</p><button class="btn primary" onclick="startLive()">Iniciar próxima rodada</button></div>';return}
- if(!gameplayDivision)gameplayDivision=team(manager().team).division||'A';
- const d=gameplayDivision;
- $('content').innerHTML=`<div class="card"><div id="clock" class="clock">${live.minute}'</div><div class="controls" style="justify-content:center"><button id="pause" class="btn" onclick="toggleLivePause()">${live.paused?'Continuar':'Pausar'}</button><button class="btn" onclick="changeLiveSpeed()">Velocidade ×<span id="speed">${live.speed}</span></button></div></div>${seriesTabs('gameplay',d)}<div class="live-match-grid"><div class="card live-events-panel"><h3>Eventos Série ${d}</h3><div id="log${d}" class="log"></div></div><div class="card live-scores-panel"><h2>Central Série ${d}</h2><div id="scores${d}" class="scores"></div></div></div>${substitutionsUI()}`;
- drawLive();
-}
 
 
 // ===== V15.8: estatísticas limpas e painel único de substituições =====
-function stats(){
- ensureV14();
- const all=S.teams.flatMap(t=>t.players.map(p=>({p,t})));
- const goals=all.filter(x=>(x.p.goals||0)>0).sort((a,b)=>(b.p.goals||0)-(a.p.goals||0)||(b.p.assists||0)-(a.p.assists||0)).slice(0,15);
- const assists=all.filter(x=>(x.p.assists||0)>0).sort((a,b)=>(b.p.assists||0)-(a.p.assists||0)||(b.p.goals||0)-(a.p.goals||0)).slice(0,15);
- const ratings=all.filter(x=>(x.p.appearances||0)>0).sort((a,b)=>(b.p.seasonRating||b.p.form||0)-(a.p.seasonRating||a.p.form||0)).slice(0,15);
- const list=(title,arr,key)=>`<div class="card"><h3>${title}</h3>${arr.length?arr.map((x,i)=>`<div class="player"><div>${crest(x.t)}<b>${i+1}. ${x.p.name}</b><br><span class="muted">${x.t.name}</span></div><span class="pill">${x.p.pos}</span><b>${key==='rating'?(x.p.seasonRating||x.p.form||0).toFixed(1):x.p[key]||0}</b><span></span><span></span></div>`).join(''):`<p class="muted">Nenhum jogador registrado ainda.</p>`}</div>`;
- $('content').innerHTML=`<div class="stat-grid">${list('Artilharia',goals,'goals')}${list('Assistências',assists,'assists')}${list('Melhores médias',ratings,'rating')}</div><div class="card"><h3>Histórico de transferências</h3>${S.transferLog.slice(0,30).map(x=>`<div class="news">${x}</div>`).join('')||'<p class="muted">Nenhuma transferência registrada.</p>'}</div>`;
-}
-function gameplay(){
- if(!live){$('content').innerHTML='<div class="card"><h2>Jogo</h2><p class="muted">Nenhuma rodada em andamento.</p><button class="btn primary" onclick="startLive()">Iniciar próxima rodada</button></div>';return}
- if(!gameplayDivision)gameplayDivision=team(manager().team).division||'A';
- const d=gameplayDivision;
- $('content').innerHTML=`<div class="card"><div id="clock" class="clock">${live.minute}'</div><div class="controls" style="justify-content:center"><button id="pause" class="btn" onclick="toggleLivePause()">${live.paused?'Continuar':'Pausar'}</button><button class="btn" onclick="changeLiveSpeed()">Velocidade ×<span id="speed">${live.speed}</span></button></div></div>${seriesTabs('gameplay',d)}<div class="live-match-grid"><div class="card live-events-panel"><h3>Eventos Série ${d}</h3><div id="log${d}" class="log"></div></div><div class="card live-scores-panel"><h2>Central Série ${d}</h2><div id="scores${d}" class="scores"></div></div></div>${substitutionsUI()}`;
- drawLive();
-}
 
 
 // ===== V16: CARREIRA LONGA, HISTÓRICO E INTERFACE ESTÁVEL =====
@@ -1138,11 +930,6 @@ function playerValueTrendHTML(p){
  if(Math.abs(v)<0.01)return '<small class="value-trend flat">• 0,0%</small>';
  return `<small class="value-trend ${v>0?'up':'down'}">${v>0?'▲':'▼'} ${Math.abs(v).toFixed(1)}%</small>`;
 }
-function squad(){
- ensureV14();
- const t=team(manager().team),players=sortedSquadPlayers(t);
- $('content').innerHTML=`<div class="card"><h2>Elenco — ${t.name}</h2><div class="tactical-grid"><div class="tactic-box"><label>Formação</label><select onchange="setFormationV14(this.value)">${Object.keys(FIELD_LAYOUTS).map(f=>`<option ${t.formation===f?'selected':''}>${f}</option>`).join('')}</select></div><div class="tactic-box"><label>Tipo de tática</label><select onchange="setTactic(this.value)">${Object.keys(TACTICS).map(x=>`<option ${t.tactic===x?'selected':''}>${x}</option>`).join('')}</select></div><div class="tactic-box"><b>Folha mensal</b><p>${fmt(monthlyPayroll(t))}</p><button class="btn primary" onclick="autoLineupV14()">Melhor escalação</button></div></div>${roleSelectors(t)}${fieldLineup(t)}</div><div class="card"><h3>Banco e contratos</h3><div class="squad-sort"><label>Organizar por<select onchange="setSquadOrder(this.value)"><option value="position" ${squadOrder==='position'?'selected':''}>Posição</option><option value="contract" ${squadOrder==='contract'?'selected':''}>Tempo de contrato</option><option value="power" ${squadOrder==='power'?'selected':''}>Poder atual</option></select></label></div>${players.map(p=>`<div class="player"><div><b>${p.name}</b><br><span class="muted">${p.age} anos • Moral ${p.morale} • <span class="${fitnessClass(p)}">Condição ${Math.round(p.fitness)}%</span> • Forma ${p.form.toFixed(1)} • Salário ${fmt(p.salary)}/mês</span>${p.injury?`<br><span class="injury-badge">${injuryText(p)}</span>`:''}${p.suspended?`<br><span class="risk-badge">Suspenso por ${p.suspended} jogo(s)</span>`:''}</div><span class="pill">${p.naturalPos||p.pos||'SEM POS.'}</span><b>${effectiveRating(p).toFixed(1)}</b><span class="hideMob"><span class="${contractClass(p.contractYears)}">Contrato ${p.contractYears} ano(s)</span><br>${fmt(p.value)} ${playerValueTrendHTML(p)}</span><span><button class="btn small" onclick="renewContract('${p.id}')">Renovar</button> <button class="btn small" onclick="listPlayer('${p.id}')">${p.listed?'Retirar':'Vender'}</button></span></div>`).join('')}</div>`;
-}
 function stats(){
  ensureV14();
  const all=S.teams.flatMap(t=>t.players.map(p=>({p,t})));
@@ -1213,13 +1000,6 @@ function fixtures(selectedDivision=null){
  fixtureDivision=d;
  $('content').innerHTML=`${seriesTabs('fixtures',d)}<div id="fixtures-current">${S.schedules[d].map((gs,i)=>`<div class="card"><h3>Série ${d} — Rodada ${i+1}</h3>${gs.map(g=>{let myId=manager().team,isMine=g.home===myId||g.away===myId;return `<div class="fixture ${isMine?'human':''}"><div>${homeMark(g,g.home)}${teamDisplay(team(g.home))}</div><b>${g.played?g.hg+' × '+g.ag:'x'}</b><div>${teamDisplay(team(g.away))}</div></div>`}).join('')}</div>`).join('')}</div>`;
 }
-function gameplay(selectedDivision=null){
- if(!live){$('content').innerHTML='<div class="card"><h2>Jogo</h2><p class="muted">Nenhuma rodada em andamento.</p><button class="btn primary" onclick="startLive()">Iniciar próxima rodada</button></div>';return}
- const d=selectedDivision||team(manager().team)?.division||'A';
- gameplayDivision=d;
- $('content').innerHTML=`<div class="card"><div id="clock" class="clock">${live.minute}'</div><div class="controls" style="justify-content:center"><button id="pause" class="btn" onclick="toggleLivePause()">${live.paused?'Continuar':'Pausar'}</button><button class="btn" onclick="changeLiveSpeed()">Velocidade ×<span id="speed">${live.speed}</span></button></div></div>${seriesTabs('gameplay',d)}<div class="live-match-grid"><div class="card live-events-panel"><h3>Eventos Série ${d}</h3><div id="log${d}" class="log"></div></div><div class="card live-scores-panel"><h2>Central Série ${d}</h2><div id="scores${d}" class="scores"></div></div></div><div id="single-substitution-panel">${substitutionsUI()}</div>`;
- drawLive();
-}
 setSeriesView=function(kind,d){
  if(kind==='table')return table(d);
  if(kind==='fixtures')return fixtures(d);
@@ -1244,6 +1024,27 @@ function gameScoreRows(games,liveMode){
     return `<div class="scoreline ${isMine?'human':''}"><div>${homeMark(g,g.home)}${teamDisplay(team(g.home))}</div><b>${score}</b><div>${teamDisplay(team(g.away))}</div></div>`;
   }).join('');
 }
+function onlineManagerMatchInfo(managerIndex){if(!live||!S?.managers?.[managerIndex])return null;const m=S.managers[managerIndex],teamId=m.team,g=(live.games||[]).find(x=>x.home===teamId||x.away===teamId);if(!g)return null;const involved=new Set([g.home,g.away]),events=(live.events||[]).filter(e=>involved.has(e.teamId));return{name:m.name||`Técnico ${managerIndex+1}`,teamId,game:g,events}}
+function focusMatchCard(info,title){if(!info)return'';const g=info.game,ev=info.events.slice(0,12),mineId=info.teamId,opponentId=g.home===mineId?g.away:g.home,mine=team(mineId),opponent=team(opponentId),mineGoals=g.home===mineId?g.hg:g.ag,opponentGoals=g.home===mineId?g.ag:g.hg;return`<div class="focus-live-card"><h3>${title} — ${info.name}</h3><div class="focus-matchup"><div class="focus-team mine"><span class="focus-team-label">Seu time</span>${teamDisplay(mine)}<span class="focus-team-name">${mine?.name||''}</span></div><div class="focus-versus">${mineGoals} × ${opponentGoals}</div><div class="focus-team opponent"><span class="focus-team-label">Adversário</span>${teamDisplay(opponent)}<span class="focus-team-name">${opponent?.name||''}</span></div></div><div class="focus-live-events">${ev.length?ev.map(e=>`<div class="event ${e.type}"><b>${e.min}'</b> ${e.text}</div>`).join(''):`<span class="muted">Sem acontecimentos até agora.</span>`}</div></div>`}
+function renderFocusedOnlineMatches(){const box=$('focusOnlineMatches');if(!box||!live||typeof MP==='undefined'||!MP.online)return;const myIndex=MP.index,otherIndex=MP.players.find(p=>p.managerIndex!==myIndex)?.managerIndex,mine=onlineManagerMatchInfo(myIndex),other=otherIndex===undefined?null:onlineManagerMatchInfo(otherIndex);box.innerHTML=focusMatchCard(mine,'⚽ Seu jogo')+(other?focusMatchCard(other,'👥 Jogo do seu amigo'):'')}
+function upcomingManagerMatchInfo(managerIndex){
+ const m=S?.managers?.[managerIndex];if(!m)return null;
+ const t=team(m.team);if(!t)return null;
+ const g=S.schedules?.[t.division]?.[S.round]?.find(x=>x.home===t.id||x.away===t.id);
+ if(!g)return null;
+ return{name:m.name||`Técnico ${managerIndex+1}`,teamId:t.id,game:{...g,hg:0,ag:0},events:[]}
+}
+function upcomingMatchCard(info,title){
+ if(!info)return'';
+ const g=info.game,mineId=info.teamId,opponentId=g.home===mineId?g.away:g.home,mine=team(mineId),opponent=team(opponentId);
+ return`<div class="focus-live-card"><h3>${title} — ${info.name}</h3><div class="focus-matchup"><div class="focus-team mine"><span class="focus-team-label">Seu time</span>${teamDisplay(mine)}<span class="focus-team-name">${mine?.name||''}</span></div><div class="focus-versus">×</div><div class="focus-team opponent"><span class="focus-team-label">Próximo adversário</span>${teamDisplay(opponent)}<span class="focus-team-name">${opponent?.name||''}</span></div></div><div class="muted" style="text-align:center">Rodada ${(S.round||0)+1}</div></div>`
+}
+function renderUpcomingOnlineMatches(){
+ const box=$('focusUpcomingMatches');if(!box||typeof MP==='undefined'||!MP.online)return;
+ const myIndex=MP.index,otherIndex=MP.players.find(p=>p.managerIndex!==myIndex)?.managerIndex;
+ const mine=upcomingManagerMatchInfo(myIndex),other=otherIndex===undefined?null:upcomingManagerMatchInfo(otherIndex);
+ box.innerHTML=upcomingMatchCard(mine,'⚽ Seu próximo jogo')+(other?upcomingMatchCard(other,'👥 Próximo jogo do seu amigo'):'')
+}
 function gameplay(selectedDivision=null){
   const d=selectedDivision||gameplayDivision||team(manager().team)?.division||'A';
   gameplayDivision=d;
@@ -1257,8 +1058,10 @@ function gameplay(selectedDivision=null){
       <div id="clock" class="clock">${hasLive?(live.minute+"'"):'—'}</div>
       <div class="muted" style="text-align:center;margin-bottom:8px">${roundLabel}</div>
       <div class="controls" style="justify-content:center">
-        ${isActive?`<button id="pause" class="btn" onclick="toggleLivePause()">${live.paused?'Continuar':'Pausar'}</button><button class="btn" onclick="changeLiveSpeed()">Velocidade ×<span id="speed">${live.speed}</span></button>`:`<button class="btn primary" onclick="startLive()">${S.round>0?'Iniciar próxima rodada':'Iniciar rodada'}</button>`}
+        ${isActive?((typeof MP!=='undefined'&&MP.online&&!MP.host)?`<span class="muted">A partida é controlada pelo anfitrião.</span>`:`<button id="pause" class="btn" onclick="toggleLivePause()">${live.paused?'Continuar':'Pausar'}</button><button class="btn" onclick="changeLiveSpeed()">Velocidade ×<span id="speed">${live.speed}</span></button>`):`<button class="btn primary" onclick="startLive()">${S.round>0?'Iniciar próxima rodada':'Iniciar rodada'}</button>`}
       </div>
+      ${(hasLive&&typeof MP!=='undefined'&&MP.online)?`<div id="focusOnlineMatches" class="focus-live-grid"></div>`:''}
+      ${(!hasLive&&typeof MP!=='undefined'&&MP.online)?`<div id="focusUpcomingMatches" class="focus-live-grid"></div>`:''}
     </div>
     ${seriesTabs('gameplay',d)}
     <div class="live-match-grid">
@@ -1266,7 +1069,8 @@ function gameplay(selectedDivision=null){
       <div class="card live-scores-panel"><h2>Central Série ${d}</h2><div id="scores${d}" class="scores">${gameScoreRows(games,hasLive)}</div></div>
     </div>
     `;
-  if(hasLive)drawLive();
+  if(hasLive){drawLive();renderFocusedOnlineMatches()}
+  else if(typeof MP!=='undefined'&&MP.online)renderUpcomingOnlineMatches();
 }
 setSeriesView=function(kind,d){
   if(kind==='table')return table(d);
@@ -1291,5 +1095,76 @@ trimNewsHistory();
 
 </script>
 <script src="expansion.js"></script>
-<script src="multiplayer.js"></script>
+<script src="multiplayer.js">
+
+// ===== V18.22: escalação por poder + condição, condição no campo e estatísticas do elenco =====
+let squadView='lineup';
+function setSquadView(v){squadView=v;squad()}
+function lineupSelectionScore(p){
+ const power=Number(effectiveRating(p)||0);
+ const fitness=Math.max(0,Math.min(100,Number(p.fitness??100)));
+ return power*.72+fitness*.28;
+}
+function playerOption(p,role){
+ const off=(p.naturalPos||p.pos)!==role?` ⚠ ${p.naturalPos||p.pos}`:'';
+ return `<option value="${p.id}">${p.name} • Poder ${effectiveRating(p).toFixed(1)} • Condição ${Math.round(p.fitness??100)}%${off}</option>`
+}
+function fieldLineup(t){
+ const layout=FIELD_LAYOUTS[t.formation]||FIELD_LAYOUTS['4-3-3'];
+ if(!t.lineupSlots||t.lineupSlots.length!==11)syncSlotsFromStarters(t);
+ const markings='<div class="goal-mouth top"></div><div class="goal-mouth bottom"></div><div class="goal-box top"></div><div class="goal-box bottom"></div><div class="six-box top"></div><div class="six-box bottom"></div><div class="center-circle"></div><div class="center-dot"></div><div class="penalty-dot top"></div><div class="penalty-dot bottom"></div><div class="penalty-arc top"></div><div class="penalty-arc bottom"></div><div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>';
+ return `<div class="field">${markings}${layout.map((s,i)=>{
+  const role=s[0],current=t.lineupSlots[i]?.playerId||'';
+  const opts=t.players.filter(p=>(availableForMatch(p)||p.id===current)&&(p.naturalPos||p.pos)===role)
+   .sort((a,b)=>lineupSelectionScore(b)-lineupSelectionScore(a));
+  return `<div class="slot ${role==='GOL'?'gk':''}" style="left:${s[1]}%;top:${s[2]}%"><div class="slot-label">${role}</div><select onchange="assignSlot(${i},this.value)"><option value="">Selecione ${role}</option>${opts.map(pl=>playerOption(pl,role).replace(`value="${pl.id}"`,`value="${pl.id}" ${pl.id===current?'selected':''}`)).join('')}</select></div>`
+ }).join('')}</div>`
+}
+function autoLineupV14(){
+ const t=team(manager().team),layout=FIELD_LAYOUTS[t.formation]||FIELD_LAYOUTS['4-3-3'],used=new Set();
+ t.lineupSlots=layout.map(s=>{
+  const pool=t.players.filter(p=>!used.has(p.id)&&availableForMatch(p)&&!p.suspended&&(p.naturalPos||p.pos)===s[0])
+   .sort((a,b)=>lineupSelectionScore(b)-lineupSelectionScore(a));
+  const pl=pool[0]||null;if(pl)used.add(pl.id);return{role:s[0],playerId:pl?.id||null}
+ });
+ t.players.forEach(pl=>{pl.starter=t.lineupSlots.some(s=>s.playerId===pl.id);pl.substitute=!pl.starter});
+ const starters=t.players.filter(pl=>pl.starter),outfield=starters.filter(pl=>(pl.naturalPos||pl.pos)!=='GOL'),taken=new Set();
+ const pick=(pool,score)=>{const pl=[...pool].filter(x=>!taken.has(x.id)).sort((a,b)=>score(b)-score(a))[0]||null;if(pl)taken.add(pl.id);return pl};
+ const captain=pick(starters,pl=>lineupSelectionScore(pl)+(pl.age||24)*.25+(['ZAG','VOL','MEI'].includes(pl.naturalPos||pl.pos)?3:0));
+ const penalty=pick(outfield,pl=>lineupSelectionScore(pl)+(['ATA','PE','PD'].includes(pl.naturalPos||pl.pos)?8:0)+(pl.goals||0)*.25);
+ const freeKick=pick(outfield,pl=>lineupSelectionScore(pl)+(['MEI','PE','PD'].includes(pl.naturalPos||pl.pos)?7:0)+(pl.assists||0)*.3);
+ const corner=pick(outfield,pl=>lineupSelectionScore(pl)+(['MEI','PE','PD','LE','LD'].includes(pl.naturalPos||pl.pos)?6:0)+(pl.assists||0)*.35);
+ t.roles=t.roles||{};t.roles.captain=captain?.id||starters[0]?.id||null;t.roles.penaltyTaker=penalty?.id||outfield[0]?.id||null;t.roles.freeKickTaker=freeKick?.id||outfield[0]?.id||null;t.roles.cornerTaker=corner?.id||outfield[0]?.id||null;
+ const empty=t.lineupSlots.filter(s=>!s.playerId).map(s=>s.role);save();squad();
+ if(empty.length)alert(`Não há jogador disponível da posição correta para: ${empty.join(', ')}. A vaga ficou vazia para evitar improvisação.`)
+}
+function ensureSquadStatFields(t){t.players.forEach(p=>{if(p.passes==null)p.passes=0;if(p.keyPasses==null)p.keyPasses=0})}
+function squadStatisticsHTML(t){
+ ensureSquadStatFields(t);
+ const ps=[...t.players];
+ const row=(title,arr,value)=>`<div class="card"><h3>${title}</h3>${arr.slice(0,10).map((p,i)=>`<div class="player"><div><b class="clickable" onclick="playerModal('${p.id}')">${i+1}. ${p.name}</b><br><span class="muted">${p.naturalPos||p.pos} • ${p.appearances||0} jogos</span></div><span class="pill">${p.naturalPos||p.pos}</span><b>${value(p)}</b><span></span><span></span></div>`).join('')||'<p class="muted">Sem dados ainda.</p>'}</div>`;
+ const goals=[...ps].sort((a,b)=>(b.goals||0)-(a.goals||0));
+ const assists=[...ps].sort((a,b)=>(b.assists||0)-(a.assists||0));
+ const passes=[...ps].sort((a,b)=>(b.passes||0)-(a.passes||0));
+ const apps=[...ps].sort((a,b)=>(b.appearances||0)-(a.appearances||0));
+ const minutes=[...ps].sort((a,b)=>(b.minutes||0)-(a.minutes||0));
+ const ratings=ps.filter(p=>(p.appearances||0)>0).sort((a,b)=>(b.seasonRating||b.form||0)-(a.seasonRating||a.form||0));
+ const totalGoals=ps.reduce((s,p)=>s+(p.goals||0),0),totalAssists=ps.reduce((s,p)=>s+(p.assists||0),0),totalPasses=ps.reduce((s,p)=>s+(p.passes||0),0);
+ return `<div class="kpis"><div class="kpi">Gols do elenco<b>${totalGoals}</b></div><div class="kpi">Assistências<b>${totalAssists}</b></div><div class="kpi">Passes completos<b>${totalPasses}</b></div><div class="kpi">Jogos do clube<b>${t.played||0}</b></div></div><div class="stat-grid">${row('Artilheiros',goals,p=>p.goals||0)}${row('Assistências',assists,p=>p.assists||0)}${row('Mais passes',passes,p=>p.passes||0)}${row('Melhores médias',ratings,p=>(p.seasonRating||p.form||0).toFixed(1))}${row('Mais jogos',apps,p=>p.appearances||0)}${row('Mais minutos',minutes,p=>p.minutes||0)}</div>`
+}
+function squad(){
+ ensureV14();const t=team(manager().team);ensureSquadStatFields(t);const players=sortedSquadPlayers(t);
+ const tabs=`<div class="tabs"><button class="btn ${squadView==='lineup'?'active':''}" onclick="setSquadView('lineup')">Escalação</button><button class="btn ${squadView==='stats'?'active':''}" onclick="setSquadView('stats')">Estatísticas</button></div>`;
+ if(squadView==='stats'){$('content').innerHTML=`<div class="card"><h2>Elenco — ${t.name}</h2>${tabs}</div>${squadStatisticsHTML(t)}`;return}
+ $('content').innerHTML=`<div class="card"><h2>Elenco — ${t.name}</h2>${tabs}<div class="tactical-grid"><div class="tactic-box"><label>Formação</label><select onchange="setFormationV14(this.value)">${Object.keys(FIELD_LAYOUTS).map(f=>`<option ${t.formation===f?'selected':''}>${f}</option>`).join('')}</select></div><div class="tactic-box"><label>Tipo de tática</label><select onchange="setTactic(this.value)">${Object.keys(TACTICS).map(x=>`<option ${t.tactic===x?'selected':''}>${x}</option>`).join('')}</select></div><div class="tactic-box"><b>Folha mensal</b><p>${fmt(monthlyPayroll(t))}</p><button class="btn primary" onclick="autoLineupV14()">Melhor escalação</button><p class="muted">Considera poder atual e condição física.</p></div></div>${roleSelectors(t)}${fieldLineup(t)}</div><div class="card"><h3>Banco e contratos</h3><div class="squad-sort"><label>Organizar por<select onchange="setSquadOrder(this.value)"><option value="position" ${squadOrder==='position'?'selected':''}>Posição</option><option value="contract" ${squadOrder==='contract'?'selected':''}>Tempo de contrato</option><option value="power" ${squadOrder==='power'?'selected':''}>Poder atual</option></select></label></div>${players.map(pl=>`<div class="player"><div><b>${pl.name}</b><br><span class="muted">${pl.age} anos • Moral ${pl.morale} • <span class="${fitnessClass(pl)}">Condição ${Math.round(pl.fitness)}%</span> • Forma ${pl.form.toFixed(1)} • Salário ${fmt(pl.salary)}/mês</span>${pl.injury?`<br><span class="injury-badge">${injuryText(pl)}</span>`:''}${pl.suspended?`<br><span class="risk-badge">Suspenso por ${pl.suspended} jogo(s)</span>`:''}</div><span class="pill">${pl.naturalPos||pl.pos||'SEM POS.'}</span><b>${effectiveRating(pl).toFixed(1)}</b><span class="hideMob"><span class="${contractClass(pl.contractYears)}">Contrato ${pl.contractYears} ano(s)</span><br>${fmt(pl.value)} ${playerValueTrendHTML(pl)}</span><span><button class="btn small" onclick="renewContract('${pl.id}')">Renovar</button> <button class="btn small" onclick="listPlayer('${pl.id}')">${pl.listed?'Retirar':'Vender'}</button></span></div>`).join('')}</div>`
+}
+const updatePlayerPerformanceV1822Base=updatePlayerPerformanceV15;
+updatePlayerPerformanceV15=function(t,g,isHome){
+ updatePlayerPerformanceV1822Base(t,g,isHome);ensureSquadStatFields(t);
+ t.players.forEach(p=>{const mins=p.matchMinutes||0;if(mins<=0)return;const pos=p.naturalPos||p.pos;const base={GOL:18,ZAG:35,LE:32,LD:32,VOL:42,MC:46,MEI:44,PE:30,PD:30,ATA:22}[pos]||30;const quality=Math.max(.65,Math.min(1.25,(effectiveRating(p)||60)/70));const completed=Math.max(1,Math.round(base*(mins/90)*quality*(.85+Math.random()*.30)));p.passes=(p.passes||0)+completed;p.keyPasses=(p.keyPasses||0)+Math.max(0,Math.round((completed/24)*Math.random()))})
+};
+const resetStatsV1822Base=resetStats;
+resetStats=function(){const r=resetStatsV1822Base.apply(this,arguments);S.teams.forEach(t=>t.players.forEach(p=>{p.passes=0;p.keyPasses=0}));return r};
+
+</script>
 </body></html>

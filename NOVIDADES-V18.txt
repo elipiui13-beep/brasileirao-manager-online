@@ -59,3 +59,25 @@ V18.8:
 - v18.14: chat ordenado da mensagem mais recente para a mais antiga.
 
 - v18.15: limpeza interna, remoção de arquivos de teste, código antigo de download de escudos removido e PNGs otimizados para 256×256.
+
+- v18.16: melhor escalação escolhe capitão e cobradores por perfil, sem goleiro nas bolas paradas.
+
+- v18.17: a Melhor escalação usa somente jogadores da posição natural exata; vagas sem atleta adequado ficam vazias, sem improvisação.
+
+- v18.18: placar e acontecimentos ao vivo do jogo de cada técnico aparecem abaixo do relógio.
+- v18.18: Pausar e Velocidade ficam visíveis somente para o anfitrião no multiplayer.
+
+- v18.19: na aba Jogo, o adversário aparece em destaque ao lado do seu time, com escudo, nome e placar.
+
+- v18.20: ao continuar após a rodada, a partida encerrada é removida do servidor para os dois jogadores; a aba Jogo mostra imediatamente o próximo adversário.
+- v18.20: corrigido o vínculo do time no painel destacado do confronto.
+
+- v18.21: corrigida a soma do investimento da base; valores antigos em texto agora são convertidos corretamente e o excedente é mantido ao subir de nível.
+
+- v18.22: Melhor escalação considera poder e condição física, seleção no campo mostra condição, e Elenco ganhou aba Estatísticas com gols, assistências, passes, jogos, minutos e médias.
+
+- v18.23: removidas 48 declarações antigas e duplicadas de funções, mantendo apenas as versões finais usadas pelo jogo.
+
+- v18.24: cada partida agora registra a rodada de origem e só pode ser processada uma vez.
+- v18.24: o jogo ao vivo usa uma cópia independente do calendário e grava o resultado apenas no encerramento.
+- v18.24: a próxima rodada é calculada pelo último jogo concluído, impedindo repetição do mesmo adversário.

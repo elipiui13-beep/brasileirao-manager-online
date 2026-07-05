@@ -61,6 +61,10 @@ function applyLiveSnapshot(snapshot){
   }
   const oldMinute=live&&live.minute;
   live={...snapshot,_remote:true,timer:null};
+  if(snapshot.finished&&Number.isFinite(Number(snapshot.roundIndex))){
+    S.lastCompletedRound=Math.max(Number(S.lastCompletedRound)||-1,Number(snapshot.roundIndex));
+    S.round=Math.max(Number(S.round)||0,Number(snapshot.roundIndex)+1);
+  }
   MP.remoteLiveActive=!!snapshot.active;
   if(snapshot.active&&!wasActive){
     if(typeof ensureAudio==='function')ensureAudio();

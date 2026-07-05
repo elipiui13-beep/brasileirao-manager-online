@@ -122,7 +122,7 @@ function makeObjectives(t){
 function ensureExpansion(){
  if(!S)return;S.expansionVersion=XVER;rebalanceInternationalMarket();S.actionLog=S.actionLog||[];S.hallOfFame=S.hallOfFame||[];S.managerRankings=S.managerRankings||[];S.competitions=S.competitions||{};S.formHistory=S.formHistory||{};S.awards=S.awards||[];S.chat=S.chat||[];S.managerResultKeys=S.managerResultKeys||{};
  (S.managers||[]).forEach(ensureManager);
- S.teams.forEach(t=>{t.form=t.form||[];ensureDebtPlan(t);t.promotedLastSeason=!!t.promotedLastSeason;t.academy=t.academy||{level:1,prospects:[],lastScoutRound:-9};t.academy.investment=t.academy.investment||0;t.academy.graduates=t.academy.graduates||[];t.academy.annualTrialSeason=t.academy.annualTrialSeason||0;t.board=t.board||{confidence:60,startCash:t.cash,targets:[]};if(!t.board.targets?.length)t.board.targets=makeObjectives(t);t.players.forEach(p=>{p.history=p.history||[{season:S.season,rating:p.rating,value:p.value}];p.fromAcademy=!!p.fromAcademy;p.potential=p.potential||Math.min(94,p.rating+rand(2,10));p.cards=p.cards||0})});
+ S.teams.forEach(t=>{t.form=t.form||[];ensureDebtPlan(t);t.promotedLastSeason=!!t.promotedLastSeason;t.academy=t.academy||{level:1,prospects:[],lastScoutRound:-9};t.academy.investment=Math.max(0,Number(t.academy.investment)||0);t.academy.graduates=t.academy.graduates||[];t.academy.annualTrialSeason=t.academy.annualTrialSeason||0;t.board=t.board||{confidence:60,startCash:t.cash,targets:[]};if(!t.board.targets?.length)t.board.targets=makeObjectives(t);t.players.forEach(p=>{p.history=p.history||[{season:S.season,rating:p.rating,value:p.value}];p.fromAcademy=!!p.fromAcademy;p.potential=p.potential||Math.min(94,p.rating+rand(2,10));p.cards=p.cards||0})});
  initCompetitions();
 }
 function initCompetitions(){
@@ -196,7 +196,30 @@ function annualTrial(t){
 function developAcademy(){S.teams.forEach(t=>{annualTrial(t);t.academy.prospects.forEach(p=>{let gain=Math.max(.1,(p.potential-p.rating)*(.025+t.academy.level*.008));p.rating=Math.min(p.potential,Math.round((p.rating+gain)*10)/10);p.development=(p.development||0)+gain;p.value=marketBaseValue(p,t.division)})})}
 const promoteBase=window.promoteYouth;window.promoteYouth=function(i){let t=team(manager().team),p=t.academy.prospects[i];if(p){p.history=p.history||[{season:S.season,rating:p.rating,value:p.value}];p.fromAcademy=true;p.academyClub=t.name;t.academy.graduates.push({name:p.name,season:S.season,potential:p.potential});manager().youthUsed=(manager().youthUsed||0)+1;logAction(`Promoveu ${p.name} da base.`)}return promoteBase.apply(this,arguments)};
 window.sellProspect=function(i){let t=team(manager().team),p=t.academy.prospects[i];if(!p)return;let value=Math.round(p.value*(.35+Math.random()*.35));if(!confirm(`Vender os direitos de ${p.name} por ${fmt(value)}?`))return;t.cash+=value;t.academy.prospects.splice(i,1);addNews(`${t.name} vendeu a promessa ${p.name} por ${fmt(value)}.`);logAction(`Vendeu promessa ${p.name}.`);save();academy()};
-window.investAcademy=function(){let t=team(manager().team),amount=+(prompt('Quanto deseja investir na base?',1000000)||0);if(amount<=0||amount>t.cash)return alert('Valor inválido.');t.cash-=amount;t.academy.investment+=amount;if(t.academy.investment>=t.academy.level*3000000&&t.academy.level<7){t.academy.investment=0;t.academy.level++;addNews(`🏗️ ${t.name} elevou a estrutura da base ao nível ${t.academy.level}.`)}save();academy()};
+window.investAcademy=function(){
+ let t=team(manager().team);
+ t.academy=t.academy||{level:1,prospects:[],graduates:[],investment:0};
+ t.academy.level=Math.max(1,Number(t.academy.level)||1);
+ t.academy.investment=Math.max(0,Number(t.academy.investment)||0);
+ let raw=prompt('Quanto deseja investir na base?',1000000);
+ if(raw===null)return;
+ let amount=Number(String(raw).replace(/\./g,'').replace(',','.'));
+ if(!Number.isFinite(amount)||amount<=0||amount>Number(t.cash||0))return alert('Valor inválido.');
+ amount=Math.round(amount);
+ t.cash=Number(t.cash||0)-amount;
+ t.academy.investment=Number(t.academy.investment||0)+amount;
+ let upgraded=false;
+ while(t.academy.level<7){
+  const required=t.academy.level*3000000;
+  if(t.academy.investment<required)break;
+  t.academy.investment-=required;
+  t.academy.level++;
+  upgraded=true;
+  addNews(`🏗️ ${t.name} elevou a estrutura da base ao nível ${t.academy.level}.`)
+ }
+ if(t.academy.level>=7&&upgraded)t.academy.investment=0;
+ save();academy()
+};
 function objectiveProgress(t,obj){if(obj.includes('Evitar'))return pos(t)<=16?100:30;if(obj.includes('metade'))return pos(t)<=10?100:Math.max(0,100-(pos(t)-10)*12);if(obj.includes('acesso'))return pos(t)<=4?100:Math.max(0,75-(pos(t)-4)*8);if(obj.includes('semifinal'))return S.cup?.stage==='Semifinal'||S.cup?.stage==='Final'||S.cup?.champion===t.id?100:30;if(obj.includes('folha'))return monthlyPayroll(t)<Math.max(1200000,t.board.startPayroll||monthlyPayroll(t))?100:35;if(obj.includes('base'))return t.players.filter(p=>p.fromAcademy&&p.appearances>0).length>=3?100:t.players.filter(p=>p.fromAcademy&&p.appearances>0).length*30;return 50}
 function evaluateObjectives(){S.teams.forEach(t=>{let avg=t.board.targets.reduce((s,o)=>s+objectiveProgress(t,o),0)/Math.max(1,t.board.targets.length);t.board.confidence=Math.max(5,Math.min(100,Math.round(t.board.confidence+(avg-50)/12)))})}
 function simulateKnockout(name,ids,prize){let teams=ids.map(team).filter(Boolean);if(teams.length<2)return null;while(teams.length>1){let next=[];teams.sort(()=>Math.random()-.5);for(let i=0;i<teams.length;i+=2){let a=teams[i],b=teams[i+1];if(!b){next.push(a);continue}next.push(strength(a)+Math.random()*12>strength(b)+Math.random()*12?a:b)}teams=next}let champ=teams[0];champ.cash+=prize;addNews(`🏆 ${champ.name} conquistou ${name} de ${S.season}.`);return champ}
