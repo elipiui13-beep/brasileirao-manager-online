@@ -15,19 +15,19 @@ function overlay(){
   #mpLobby .box{width:min(760px,100%);background:#111c31;border:1px solid #33466b;border-radius:18px;padding:24px;box-shadow:0 25px 80px #0009}
   #mpLobby h1{margin-top:0}#mpLobby .tabs{display:flex;gap:8px;margin:18px 0}#mpLobby input,#mpLobby select{width:100%;padding:12px;margin:6px 0 12px;border-radius:9px;border:1px solid #42577e;background:#091326;color:#fff}
   #mpLobby .row{display:grid;grid-template-columns:1fr 1fr;gap:18px}#mpLobby button{padding:12px 16px;border:0;border-radius:9px;font-weight:800;cursor:pointer;background:#2f75ff;color:white}.muted{opacity:.72}.err{color:#ff7f87;font-weight:700}
-  #mpTop{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:6px;max-width:760px;color:#fff}
-  #mpTop .mp-summary{background:#0c1729;border:1px solid #4a76bd;border-radius:12px;padding:7px 10px;box-shadow:0 6px 18px #0005}
-  #mpTop .mp-room{font-size:11px;opacity:.8}.mp-status{display:flex;gap:10px;flex-wrap:wrap;margin-top:3px;font-size:12px}.mp-ok{color:#79e89a;font-weight:800}.mp-wait{color:#ffd36b;font-weight:800}
+  #mpTop{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;color:#fff;max-width:760px}
+  #mpTop .mp-summary{background:#0c1729;border:1px solid #4a76bd;border-radius:11px;padding:6px 9px;box-shadow:0 5px 14px #0004}
+  #mpTop .mp-room{font-size:11px;opacity:.8}.mp-status{display:flex;gap:9px;flex-wrap:wrap;margin-top:3px;font-size:12px}.mp-ok{color:#79e89a;font-weight:800}.mp-wait{color:#ffd36b;font-weight:800}
   #mpTop .mp-actions{display:flex;gap:6px;align-items:center}#mpTop button{border:0;border-radius:9px;cursor:pointer;font-weight:900;min-height:34px;padding:7px 11px}
-  .mp-inline-actions{display:inline-flex;gap:10px;align-items:center;flex-wrap:wrap}.mp-inline-ready{font-size:inherit!important}
+  .mp-inline-actions{display:inline-flex;gap:10px;align-items:center;flex-wrap:wrap}.mp-inline-ready{border:0;border-radius:10px;cursor:pointer;font-weight:900;min-height:44px;padding:10px 16px;background:linear-gradient(135deg,#2f75ff,#56a0ff)!important;color:#fff!important;box-shadow:0 5px 18px #246ef055}.mp-inline-ready.ready{background:linear-gradient(135deg,#d28d22,#ffc45c)!important;color:#241400!important}
   #mpCopyBtn{background:#344967;color:#fff}.mp-live-badge{display:inline-flex;align-items:center;gap:7px;background:#9c1d2c;color:#fff;border-radius:999px;padding:4px 8px;font-weight:900;font-size:11px;animation:mpPulse 1.2s infinite}
-  @keyframes mpPulse{50%{opacity:.65}}@media(max-width:760px){#mpLobby .row{grid-template-columns:1fr}#mpTop{justify-content:flex-start;width:100%;max-width:none}main#game header{align-items:flex-start;flex-wrap:wrap}#mpTop .mp-summary{width:100%}}
+  @keyframes mpPulse{50%{opacity:.65}}@media(max-width:760px){#mpLobby .row{grid-template-columns:1fr}main#game header{align-items:flex-start;flex-wrap:wrap}#mpTop{width:100%;justify-content:flex-start}#mpTop .mp-summary{width:100%}}
   </style><div class="box"><h1>🌐 Brasileirão Manager Online</h1><p class="muted">Crie uma carreira ou entre usando o código enviado pelo seu amigo.</p><div class="row"><section><h2>Criar sala</h2><input id="mpCreateName" placeholder="Seu nome"><div class="muted" style="margin:4px 0 14px">Seu clube será sorteado aleatoriamente entre os times da Série C.</div><button id="mpCreate">Criar carreira online</button></section><section><h2>Entrar na sala</h2><input id="mpCode" maxlength="6" placeholder="Código da sala"><input id="mpJoinName" placeholder="Seu nome"><div class="muted" style="margin:4px 0 14px">Você receberá outro clube aleatório da Série C.</div><button id="mpJoin">Entrar na carreira</button></section></div><p id="mpMsg" class="err"></p><hr><button id="mpSolo" style="background:#47556d">Continuar no modo individual</button></div>`;document.body.appendChild(el);
   el.querySelector('#mpSolo').onclick=()=>el.remove();el.querySelector('#mpCreate').onclick=createRoom;el.querySelector('#mpJoin').onclick=joinRoom;
 }
 function msg(x){const e=document.getElementById('mpMsg');if(e)e.textContent=x||''}
-async function createRoom(){try{msg('Criando sala...');const name=document.getElementById('mpCreateName').value.trim()||'Técnico 1';const chosen=buildState(name);const r=await api('/api/rooms/create',{method:'POST',body:JSON.stringify({name,teamId:chosen.id,state:S})});enter(r,true);document.getElementById('mpLobby').remove();saveLocal();openGame();alert(`Sala criada!\nSeu time: ${chosen.name}\nCódigo: ${r.code}\nEnvie esse código ao seu amigo.`)}catch(e){msg(e.message)}}
-async function joinRoom(){try{msg('Entrando...');const code=document.getElementById('mpCode').value.trim().toUpperCase(),name=document.getElementById('mpJoinName').value.trim()||'Técnico 2';const r=await api(`/api/rooms/${code}/join`,{method:'POST',body:JSON.stringify({name})});enter(r,false);document.getElementById('mpLobby').remove();applyRoom(r.room,true);saveLocal();openGame();alert(`Você entrou na sala ${code}.\nSeu time: ${team(manager().team).name}`)}catch(e){msg(e.message)}}
+async function createRoom(){try{msg('Criando sala...');const name=document.getElementById('mpCreateName').value.trim()||'Técnico 1';const chosen=buildState(name);const r=await api('/api/rooms/create',{method:'POST',body:JSON.stringify({name,teamId:chosen.id,state:S})});enter(r,true);document.getElementById('mpLobby')?.remove();saveLocal();openGame();setTimeout(drawBar,0);alert(`Sala criada!\nSeu time: ${chosen.name}\nCódigo: ${r.code}\nEnvie esse código ao seu amigo.`)}catch(e){msg(e.message)}}
+async function joinRoom(){try{msg('Entrando...');const code=document.getElementById('mpCode').value.trim().toUpperCase(),name=document.getElementById('mpJoinName').value.trim()||'Técnico 2';const r=await api(`/api/rooms/${code}/join`,{method:'POST',body:JSON.stringify({name})});enter(r,false);document.getElementById('mpLobby')?.remove();applyRoom(r.room,true);saveLocal();openGame();setTimeout(drawBar,0);alert(`Você entrou na sala ${code}.\nSeu time: ${team(manager().team).name}`)}catch(e){msg(e.message)}}
 function enter(r,host){MP.code=r.code;MP.token=r.token;MP.index=r.managerIndex;MP.host=host;MP.online=true;sessionStorage.setItem('bm_mp',JSON.stringify({code:MP.code,token:MP.token,index:MP.index,host}));applyRoom(r.room,true);install();startPoll()}
 function applyLiveSnapshot(snapshot){
   if(MP.host)return;
@@ -62,11 +62,12 @@ function enhanceGameButtons(){
       const nw=document.createElement('span');nw.className='mp-inline-actions';
       btn.parentNode.insertBefore(nw,btn);nw.appendChild(btn);wrap=nw;
     }
-    if(!MP.host){btn.style.display='none';btn.setAttribute('aria-hidden','true')}
-    else{btn.style.display='';btn.removeAttribute('aria-hidden')}
+    const shouldShow=!!MP.host;
+    if((btn.style.display!=='none')!==shouldShow)btn.style.display=shouldShow?'':'none';
+    if(shouldShow)btn.removeAttribute('aria-hidden');else btn.setAttribute('aria-hidden','true');
     let ready=wrap.querySelector('.mp-inline-ready');
-    if(!ready){ready=document.createElement('button');ready.type='button';ready.className='btn primary mp-inline-ready';ready.onclick=window.mpToggleReady;wrap.insertBefore(ready,btn)}
-    const st=readyLabel();ready.className='btn primary mp-inline-ready';ready.classList.toggle('ready',st.ready);ready.textContent=st.label;
+    if(!ready){ready=document.createElement('button');ready.type='button';ready.className='mp-inline-ready';ready.onclick=window.mpToggleReady;wrap.insertBefore(ready,btn)}
+    const st=readyLabel();ready.classList.toggle('ready',st.ready);if(ready.textContent!==st.label)ready.textContent=st.label;
   });
 }
 function install(){
@@ -85,12 +86,15 @@ function install(){
 }
 function drawBar(){
   if(!MP.online)return;
-  const header=document.querySelector('main#game header');if(!header)return;
-  let b=document.getElementById('mpTop');
-  if(!b){b=document.createElement('div');b.id='mpTop';header.appendChild(b)}
-  const me=MP.players.find(p=>p.managerIndex===MP.index),other=MP.players.find(p=>p.managerIndex!==MP.index),isLive=!!(live&&live.active);
-  b.innerHTML=`<div class="mp-summary"><div><b>🌐 Sala ${MP.code}</b> <span class="mp-room">${MP.host?'• Anfitrião':'• Conectado'}</span> ${isLive?'<span class="mp-live-badge">● AO VIVO</span>':''}</div><div class="mp-status"><span class="${me&&me.ready?'mp-ok':'mp-wait'}">Você: ${me&&me.ready?'✓ Pronto':'○ Não pronto'}</span><span class="${other&&other.ready?'mp-ok':'mp-wait'}">${other?other.name:'Aguardando amigo'}: ${other?(other.ready?'✓ Pronto':'○ Não pronto'):'—'}</span></div></div><div class="mp-actions"><button id="mpCopyBtn" onclick="mpCopyCode()">Copiar código</button></div>`;
-  setTimeout(enhanceGameButtons,0)
+  try{
+    const header=document.querySelector('main#game header');if(!header)return;
+    let b=document.getElementById('mpTop');
+    if(!b){b=document.createElement('div');b.id='mpTop';header.appendChild(b)}
+    const me=MP.players.find(p=>p.managerIndex===MP.index),other=MP.players.find(p=>p.managerIndex!==MP.index),isLive=!!(typeof live!=='undefined'&&live&&live.active);
+    const html=`<div class="mp-summary"><div><b>🌐 Sala ${MP.code}</b> <span class="mp-room">${MP.host?'• Anfitrião':'• Conectado'}</span> ${isLive?'<span class="mp-live-badge">● AO VIVO</span>':''}</div><div class="mp-status"><span class="${me&&me.ready?'mp-ok':'mp-wait'}">Você: ${me&&me.ready?'✓ Pronto':'○ Não pronto'}</span><span class="${other&&other.ready?'mp-ok':'mp-wait'}">${other?other.name:'Aguardando amigo'}: ${other?(other.ready?'✓ Pronto':'○ Não pronto'):'—'}</span></div></div><div class="mp-actions"><button id="mpCopyBtn" onclick="mpCopyCode()">Copiar código</button></div>`;
+    if(b.innerHTML!==html)b.innerHTML=html;
+    setTimeout(enhanceGameButtons,0);
+  }catch(e){console.warn('Falha ao desenhar painel online:',e)}
 }
 function startPoll(){clearInterval(MP.poll);MP.poll=setInterval(async()=>{if(!MP.online||document.hidden)return;try{const r=await api(`/api/rooms/${MP.code}`);const changed=r.version>MP.version||(r.liveVersion||0)>MP.liveVersion;applyRoom(r,changed&&r.version>MP.version);if(changed)saveLocal()}catch(e){console.warn(e.message)}},650)}
 async function resume(){try{const x=JSON.parse(sessionStorage.getItem('bm_mp')||'null');if(!x)return false;MP.code=x.code;MP.token=x.token;MP.index=x.index;MP.host=x.host;MP.online=true;const r=await api(`/api/rooms/${MP.code}`);applyRoom(r,true);install();startPoll();document.getElementById('mpLobby')?.remove();saveLocal();openGame();return true}catch{return false}}

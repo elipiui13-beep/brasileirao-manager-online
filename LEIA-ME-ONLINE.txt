@@ -29,3 +29,8 @@ SORTEIO DOS TIMES
 - Não existe escolha manual e os times nunca se repetem na mesma sala.
 
 As carreiras ficam salvas na pasta online-data criada automaticamente pelo servidor.
+
+VERSÃO 17.5
+- Corrigida a entrada do anfitrião após criar a sala.
+- Informações da sala ficam no cabeçalho, ao lado da temporada/rodada.
+- O botão Estou pronto aparece no mesmo local para os dois jogadores.
