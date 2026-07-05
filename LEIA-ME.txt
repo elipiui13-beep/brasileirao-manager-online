@@ -1,0 +1,7 @@
+Brasileirão Manager v16 — correções de carreira longa, histórico, painel de eventos e substituições.
+Abra o arquivo index.html no navegador.
+
+
+V16.1: pacote de sons offline com apitos, torcida, gols, cartões, lesões e controle de volume.
+
+Versão 16.6: sons de clique e navegação removidos; permanecem apenas os sons das partidas.

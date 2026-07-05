@@ -1,0 +1,8 @@
+{
+  "name": "brasileirao-manager-online",
+  "version": "17.0.0-beta",
+  "private": true,
+  "description": "Servidor multiplayer do Brasileirão Manager",
+  "scripts": {"start": "node server.js"},
+  "engines": {"node": ">=18"}
+}

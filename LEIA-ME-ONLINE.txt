@@ -1,0 +1,31 @@
+BRASILEIRÃO MANAGER ONLINE — V17.1
+
+IMPORTANTE: não abra o index.html diretamente. O jogo online deve ser aberto pelo servidor.
+
+ARQUIVOS DO SERVIDOR
+- server.js: servidor Node.js do jogo
+- package.json: configuração do projeto
+- INICIAR_SERVIDOR.bat: inicia no Windows com dois cliques
+- INICIAR_SERVIDOR.sh: inicia no Linux/macOS
+
+TESTE NA MESMA CASA
+1. Instale o Node.js LTS no computador que será o anfitrião.
+2. Extraia todo o ZIP.
+3. No Windows, dê dois cliques em INICIAR_SERVIDOR.bat.
+   Alternativa: abra um terminal nesta pasta e execute: node server.js
+4. No computador anfitrião, abra: http://localhost:3000
+5. No computador do amigo, conectado à mesma rede Wi-Fi, abra:
+   http://IP-DO-ANFITRIAO:3000
+6. Um cria a sala e envia o código ao outro.
+
+JOGAR DE CASAS DIFERENTES
+O servidor precisa ser publicado na internet, por exemplo em Render, Railway ou outro serviço Node.js.
+Comando de inicialização: node server.js
+Porta: use a variável PORT fornecida pela hospedagem.
+
+SORTEIO DOS TIMES
+- O anfitrião recebe automaticamente um clube aleatório da Série C.
+- O segundo jogador recebe automaticamente outro clube aleatório da Série C.
+- Não existe escolha manual e os times nunca se repetem na mesma sala.
+
+As carreiras ficam salvas na pasta online-data criada automaticamente pelo servidor.
