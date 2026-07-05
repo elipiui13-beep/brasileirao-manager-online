@@ -11,3 +11,5 @@ Escudos oficiais: o servidor baixa automaticamente e guarda em assets/crests na 
 
 
 Escudos oficiais reais: integrados localmente na pasta assets/crests usando arquivos PNG fornecidos pelo usuário.
+
+Versão 18.15 otimizada: arquivos de teste removidos e escudos compactados sem dependência de internet.

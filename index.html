@@ -237,7 +237,7 @@ function storageGet(key){try{return localStorage.getItem(key)}catch(e){return ke
 function save(){storageSet("brCareerV12",JSON.stringify(S))}
 function migratePlayer(p,t){if(p.assists==null)p.assists=0;if(p.appearances==null)p.appearances=0;if(p.form==null)p.form=6.5;if(p.valueTrend==null)p.valueTrend=0;if(p.playInjured==null)p.playInjured=false;if(p.fitness==null)p.fitness=100;if(p.lastPower==null)p.lastPower=p.rating;if(typeof p.injured==="number"&&p.injured>0&&!p.injury)p.injury={type:"Desconforto muscular",gamesLeft:p.injured,risk:.18,penalty:3};if(!p.injury)p.injured=0}
 function loadGame(){let x=storageGet("brCareerV12")||storageGet("brCareerV11")||storageGet("brCareerV10")||storageGet("brCareerV9")||storageGet("brCareerV7");if(!x)return alert("Nenhuma carreira salva.");S=JSON.parse(x);S.teams.forEach(t=>{let src=DB.find(d=>d.name===t.name);if(src)t.logo=src.logo;if(!t.formation)t.formation="4-3-3";if(!t.tactic)t.tactic="Equilibrada";if(!t.stadium)t.stadium={level:1,capacity:t.division==="A"?30000:t.division==="B"?20000:12000,lastAttendance:0,lastRevenue:0,totalRevenue:0};t.players.forEach(p=>migratePlayer(p,t));});if(!S.marketModelVersion){S.teams.forEach(t=>t.players.forEach(p=>p.value=normalizedValue(p,t.division)));S.marketModelVersion=2}if(!S.globalMarket)S.globalMarket=WORLD.map(p=>({...p,bought:false}));openGame()}
-function openGame(){$("setup").classList.add("hidden");$("game").classList.remove("hidden");document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"));b.classList.add("active");render(b.dataset.v)});render("home");setTimeout(loadEmbeddedCrests,10)}
+function openGame(){$("setup").classList.add("hidden");$("game").classList.remove("hidden");document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"));b.classList.add("active");if(b.dataset.v==="home"&&live&&!live.active)live=null;render(b.dataset.v);setTimeout(loadEmbeddedCrests,10)});render("home");setTimeout(loadEmbeddedCrests,10)}
 function standings(d){return S.teams.filter(t=>t.division===d).sort((a,b)=>b.pts-a.pts||b.w-a.w||(b.gf-b.ga)-(a.gf-a.ga)||b.gf-a.gf)}function pos(t){return standings(t.division).findIndex(x=>x.id===t.id)+1}
 const FORMATIONS={"4-3-3":{GOL:1,ZAG:2,LD:1,LE:1,VOL:1,MC:1,MEI:1,PD:1,PE:1,ATA:1},"4-4-2":{GOL:1,ZAG:2,LD:1,LE:1,VOL:1,MC:2,MEI:1,ATA:2},"4-2-3-1":{GOL:1,ZAG:2,LD:1,LE:1,VOL:2,MEI:1,PD:1,PE:1,ATA:1},"3-5-2":{GOL:1,ZAG:3,LD:1,LE:1,VOL:1,MC:1,MEI:1,ATA:2},"5-3-2":{GOL:1,ZAG:3,LD:1,LE:1,VOL:1,MC:1,MEI:1,ATA:2}};
 const TACTICS={"Equilibrada":{atk:1,def:1,card:1},"Ofensiva":{atk:1.18,def:.88,card:1.08},"Defensiva":{atk:.82,def:1.18,card:.9},"Contra-ataque":{atk:1.08,def:1.08,card:1},"Pressão alta":{atk:1.12,def:.95,card:1.22},"Posse de bola":{atk:1.04,def:1.04,card:.92}};
@@ -374,9 +374,25 @@ function tick(g,min){
 }
 let liveDivision="A";
 function setActiveNav(v){document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active",b.dataset.v===v))}
+function refreshCurrentView(){
+ const active=document.querySelector("nav button.active")?.dataset.v||"home";
+ render(active);
+ setTimeout(loadEmbeddedCrests,10);
+}
+function goHomeAfterRound(){
+ live=null;
+ setActiveNav("home");
+ render("home");
+ setTimeout(loadEmbeddedCrests,10);
+ window.scrollTo({top:0,behavior:"smooth"});
+}
+
 function gameplay(){
  if(!live){$("content").innerHTML=`<div class="card"><h2>Jogo</h2><p class="muted">Nenhuma rodada está em andamento.</p><button class="btn primary" onclick="startLive()">Iniciar próxima rodada</button></div>`;return}
- $("content").innerHTML=`<div class="card"><div id="clock" class="clock">${live.minute}'</div><div class="controls" style="justify-content:center"><button id="pause" class="btn" onclick="toggleLivePause()">${live.paused?'Continuar':'Pausar'}</button><button class="btn" onclick="changeLiveSpeed()">Velocidade ×<span id="speed">${live.speed}</span></button></div></div><div class="live-all">${["A","B","C"].map(d=>`<div class="live-series"><div class="card"><h2>Série ${d}</h2><h3>Eventos Série ${d}</h3><div id="log${d}" class="log"></div><h3 style="margin-top:12px">Central Série ${d}</h3><div id="scores${d}" class="scores"></div></div></div>`).join("")}</div>`;
+ const finished=!!live.finished;
+ let my=team(manager().team),myGame=(live.games||[]).find(g=>g.home===my?.id||g.away===my?.id);
+ let finalBanner=finished?`<div class="card" style="text-align:center;border:2px solid var(--gold);background:linear-gradient(135deg,#342600,#665000)"><h2 style="margin-bottom:6px">🏁 JOGO ENCERRADO</h2>${myGame?`<div style="font-size:22px;font-weight:1000">${teamDisplay(team(myGame.home))} ${myGame.hg} × ${myGame.ag} ${teamDisplay(team(myGame.away))}</div>`:'<div class="muted">A rodada foi concluída.</div>'}<div class="controls" style="justify-content:center;margin-top:12px"><button class="btn primary" onclick="goHomeAfterRound()">Continuar para o menu</button></div></div>`:'';
+ $("content").innerHTML=`${finalBanner}<div class="card"><div id="clock" class="clock">${finished?'FIM':live.minute+"'"}</div><div class="controls" style="justify-content:center">${finished?'':`<button id="pause" class="btn" onclick="toggleLivePause()">${live.paused?'Continuar':'Pausar'}</button><button class="btn" onclick="changeLiveSpeed()">Velocidade ×<span id="speed">${live.speed}</span></button>`}</div></div><div class="live-all">${["A","B","C"].map(d=>`<div class="live-series"><div class="card"><h2>Série ${d}</h2><h3>Eventos Série ${d}</h3><div id="log${d}" class="log"></div><h3 style="margin-top:12px">Central Série ${d}</h3><div id="scores${d}" class="scores"></div></div></div>`).join("")}</div>`;
  drawLive();
 }
 function toggleLivePause(){if(!live)return;live.paused=!live.paused;let b=$("pause");if(b)b.textContent=live.paused?'Continuar':'Pausar'}
@@ -419,7 +435,7 @@ function finishRound(){
  S.news.unshift(`Rodada ${S.round+1} da temporada ${S.season} concluída.`);
  S.round++;
  maybeGenerateOffers();
- if(S.round>=38)endSeason();else{save();setTimeout(()=>{alert("Fim da rodada.");setActiveNav("gameplay");render("gameplay");let c=$("content");if(c)c.insertAdjacentHTML("afterbegin",`<div class="card"><b>Rodada concluída.</b> Os placares foram salvos. <button class="btn primary small" onclick="live=null;setActiveNav('home');render('home');setTimeout(loadEmbeddedCrests,10)">Continuar</button></div>`)},200)}
+ if(S.round>=38)endSeason();else{save();setTimeout(()=>{alert("Fim da rodada.");setActiveNav("gameplay");render("gameplay");let c=$("content");if(c)c.insertAdjacentHTML("afterbegin",`<div class="card"><b>Rodada concluída.</b> Os placares foram salvos. <button class="btn primary small" onclick="goHomeAfterRound()">Continuar</button></div>`)},200)}
 }
 function maybeGenerateOffers(){
  let m=manager(),cur=team(m.team);
@@ -577,7 +593,7 @@ function generateCupRound(){if(!S.cup||!S.cup.entrants)initCupBracket();if(!S.cu
 function processExpiredContracts(){if(!S.freeAgents)S.freeAgents=[];S.teams.forEach(t=>{[...t.players].forEach(p=>{p.contractYears=(p.contractYears||1)-1;if(p.contractYears<=0){let renewChance=p.morale/100+(p.starter?.2:0);if(Math.random()<renewChance*.55){p.contractYears=rand(1,3);p.salary=Math.round(p.salary*1.08/1000)*1000}else{removePlayerFromTeam(t,p);p.starter=false;p.listed=false;p.freeAgent=true;S.freeAgents.push(p);S.news.unshift(`${p.name} deixou o ${t.name} ao fim do contrato e está livre no mercado.`)}}})})}
 function finishRound(){
  live.games.forEach(g=>{g.played=true;let h=team(g.home),a=team(g.away);h.played++;a.played++;h.gf+=g.hg;h.ga+=g.ag;a.gf+=g.ag;a.ga+=g.hg;if(g.hg>g.ag){h.w++;h.pts+=3;a.l++}else if(g.ag>g.hg){a.w++;a.pts+=3;h.l++}else{h.d++;a.d++;h.pts++;a.pts++}updatePlayerPerformanceV15(h,g,true);updatePlayerPerformanceV15(a,g,false);updateFitnessAfterMatchV15(h);updateFitnessAfterMatchV15(a);let gate=stadiumIncome(h,g);if(h.id===manager().team&&gate)S.news.unshift(`${h.name} arrecadou ${fmt(gate)} com ${h.stadium.lastAttendance.toLocaleString('pt-BR')} torcedores no estádio.`);[h,a].forEach(t=>{t.cash+=(t.division==='A'?2.2:t.division==='B'?.9:.4)*1e6;recoverInjuriesV15(t);processDisciplineAfterRound(t);repairLineup(t)})});
- let m=manager(),my=team(m.team),myGame=live.games.find(g=>g.home===my.id||g.away===my.id);if(myGame){let gf=myGame.home===my.id?myGame.hg:myGame.ag,ga=myGame.home===my.id?myGame.ag:myGame.hg;if(gf>ga){m.careerPoints+=3;m.reputation=Math.min(100,m.reputation+1)}else if(gf===ga)m.careerPoints+=1;else m.reputation=Math.max(1,m.reputation-(Math.random()<.2?1:0))}S.news.unshift(`Rodada ${S.round+1} da temporada ${S.season} concluída.`);S.round++;payWages();S.teams.forEach(evaluateBoard);if(S.round%3===0)aiTransferWindow();generateCupRound();maybeGenerateOffers();if(S.round>=38)endSeason();else{save();setTimeout(()=>{alert('Fim da rodada.');setActiveNav('gameplay');render('gameplay');let c=$('content');if(c)c.insertAdjacentHTML('afterbegin',`<div class="card"><b>Rodada concluída.</b> Os placares, minutos e estatísticas foram salvos. <button class="btn primary small" onclick="live=null;setActiveNav('home');render('home')">Continuar</button></div>`)},150)}}
+ let m=manager(),my=team(m.team),myGame=live.games.find(g=>g.home===my.id||g.away===my.id);if(myGame){let gf=myGame.home===my.id?myGame.hg:myGame.ag,ga=myGame.home===my.id?myGame.ag:myGame.hg;if(gf>ga){m.careerPoints+=3;m.reputation=Math.min(100,m.reputation+1)}else if(gf===ga)m.careerPoints+=1;else m.reputation=Math.max(1,m.reputation-(Math.random()<.2?1:0))}S.news.unshift(`Rodada ${S.round+1} da temporada ${S.season} concluída.`);S.round++;payWages();S.teams.forEach(evaluateBoard);if(S.round%3===0)aiTransferWindow();generateCupRound();maybeGenerateOffers();if(S.round>=38)endSeason();else{save();setTimeout(()=>{alert('Fim da rodada.');setActiveNav('gameplay');render('gameplay');let c=$('content');if(c)c.insertAdjacentHTML('afterbegin',`<div class="card"><b>Rodada concluída.</b> Os placares, minutos e estatísticas foram salvos. <button class="btn primary small" onclick="goHomeAfterRound()">Continuar</button></div>`)},150)}}
 const resetStatsOldV15=resetStats;resetStats=function(){processExpiredContracts();S.teams.forEach(t=>{evolvePlayers(t);t.played=t.w=t.d=t.l=t.gf=t.ga=t.pts=0;t.players.forEach(p=>{p.goals=p.assists=p.appearances=p.yellow=p.red=p.minutes=0;p.seasonRating=6.5;p.form=6.5;p.age++;p.value=Math.max(200000,Math.round(p.value*(p.age<24?1.025:p.age>31?.94:.995)/50000)*50000)});t.board=makeBoard(t);repairLineup(t)});initCupBracket()}
 
 init();

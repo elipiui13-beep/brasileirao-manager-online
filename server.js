@@ -8,18 +8,11 @@ const ROOT = __dirname;
 const DATA_DIR = process.env.DATA_DIR || (fs.existsSync('/var/data') ? '/var/data' : path.join(ROOT, 'online-data'));
 fs.mkdirSync(DATA_DIR, { recursive: true });
 
-const CREST_DIR = path.join(ROOT, 'assets', 'crests');
-const CREST_MANIFEST = path.join(CREST_DIR, 'manifest.json');
-fs.mkdirSync(CREST_DIR, { recursive: true });
-const CREST_HINTS = {
-  'Flamengo':['Clube de Regatas do Flamengo','Flamengo'],'Palmeiras':['SE Palmeiras','Palmeiras'],'Cruzeiro':['Cruzeiro Esporte Clube','Cruzeiro'],'Corinthians':['Sport Club Corinthians Paulista','Corinthians'],'Botafogo':['Botafogo de Futebol e Regatas','Botafogo'],'Fluminense':['Fluminense Football Club','Fluminense'],'Bahia':['Esporte Clube Bahia','Bahia'],'Santos':['Santos Futebol Clube','Santos'],'Vasco':['CR Vasco da Gama','Vasco da Gama'],'Grêmio':['Grêmio Foot-Ball Porto Alegrense','Grêmio'],'Bragantino':['Red Bull Bragantino','Bragantino'],'Atlético-MG':['Clube Atlético Mineiro','Atlético Mineiro'],'São Paulo':['São Paulo Futebol Clube','São Paulo'],'Athletico-PR':['Club Athletico Paranaense','Athletico Paranaense','Athletico-PR'],'Internacional':['Sport Club Internacional','Internacional'],'Vitória':['Esporte Clube Vitória','Vitória'],'Coritiba':['Coritiba Foot Ball Club','Coritiba'],'Mirassol':['Mirassol Futebol Clube','Mirassol'],'Remo':['Clube do Remo','Remo'],'Chapecoense':['Associação Chapecoense de Futebol','Chapecoense'],'Vila Nova':['Vila Nova Futebol Clube','Vila Nova'],'Fortaleza':['Fortaleza Esporte Clube','Fortaleza'],'Ceará':['Ceará Sporting Club','Ceará'],'Novorizontino':['Grêmio Novorizontino','Novorizontino'],'Avaí':['Avaí Futebol Clube','Avaí'],'Athletic Club':['Athletic Club','Athletic Club MG'],'Operário-PR':['Operário Ferroviário Esporte Clube','Operário Ferroviário','Operário-PR'],'Botafogo-SP':['Botafogo Futebol Clube (Ribeirão Preto)','Botafogo-SP'],'São Bernardo':['São Bernardo Futebol Clube','São Bernardo'],'Criciúma':['Criciúma Esporte Clube','Criciúma'],'Juventude':['Esporte Clube Juventude','Juventude'],'Goiás':['Goiás Esporte Clube','Goiás'],'Sport':['Sport Club do Recife','Sport Recife','Sport'],'Náutico':['Clube Náutico Capibaribe','Náutico'],'Cuiabá':['Cuiabá Esporte Clube','Cuiabá'],'Londrina':['Londrina Esporte Clube','Londrina'],'Atlético-GO':['Atlético Goianiense','Atlético-GO'],'Ponte Preta':['Associação Atlética Ponte Preta','Ponte Preta'],'CRB':['Clube de Regatas Brasil','CRB'],'América-MG':['América Futebol Clube','América Mineiro','América-MG'],'Amazonas':['Amazonas Futebol Clube','Amazonas'],'Ypiranga-RS':['Ypiranga Futebol Clube','Ypiranga-RS'],'Brusque':['Brusque Futebol Clube','Brusque'],'Maringá':['Maringá Futebol Clube','Maringá'],'Botafogo-PB':['Botafogo Futebol Clube','Botafogo-PB'],'Guarani':['Guarani Futebol Clube','Guarani'],'Floresta':['Floresta Esporte Clube','Floresta'],'Paysandu':['Paysandu Sport Club','Paysandu'],'Barra-SC':['Barra Futebol Clube','Barra-SC','Barra FC'],'Inter de Limeira':['Associação Atlética Internacional','Inter de Limeira'],'Santa Cruz':['Santa Cruz Futebol Clube','Santa Cruz'],'Figueirense':['Figueirense Futebol Clube','Figueirense'],'Ituano':['Ituano Futebol Clube','Ituano'],'Caxias':['Sociedade Esportiva e Recreativa Caxias do Sul','Caxias'],'Confiança':['Associação Desportiva Confiança','Confiança'],'Volta Redonda':['Volta Redonda Futebol Clube','Volta Redonda'],'Itabaiana':['Associação Olímpica de Itabaiana','Itabaiana'],'Ferroviária':['Associação Ferroviária de Esportes','Ferroviária'],'Maranhão':['Maranhão Atlético Clube','Maranhão'],'Anápolis':['Anápolis Futebol Clube','Anápolis']
-};
-function slugify(v){return String(v||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'')}
-function readCrestManifest(){ try{return JSON.parse(fs.readFileSync(CREST_MANIFEST,'utf8'))}catch{return {}} }
-function writeCrestManifest(map){ fs.writeFileSync(CREST_MANIFEST, JSON.stringify(map,null,2),'utf8'); }
-async function fetchJson(url){ const r=await fetch(url,{headers:{'User-Agent':'BrasileiraoManager/18.7'}}); if(!r.ok) throw new Error('http '+r.status); return r.json(); }
-async function fetchBytes(url){ const r=await fetch(url,{headers:{'User-Agent':'BrasileiraoManager/18.7'}}); if(!r.ok) throw new Error('http '+r.status); const ab=await r.arrayBuffer(); return Buffer.from(ab); }
-async function ensureCrests(){return readCrestManifest()}
+const CREST_MANIFEST = path.join(ROOT, 'assets', 'crests', 'manifest.json');
+function readCrestManifest() {
+  try { return JSON.parse(fs.readFileSync(CREST_MANIFEST, 'utf8')); }
+  catch { return {}; }
+}
 
 const rooms = new Map();
 
@@ -64,7 +57,8 @@ function safeStatic(req,res){
     if(e)return send(res,404,'Not found');
     const ext=path.extname(f).toLowerCase();
     const m={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.svg':'image/svg+xml','.ico':'image/x-icon','.webp':'image/webp'}[ext]||'application/octet-stream';
-    res.writeHead(200,{'Content-Type':m,'Cache-Control':'no-store'});res.end(d);
+    const cache = ['.png','.jpg','.webp','.ico'].includes(ext) ? 'public, max-age=604800, immutable' : 'no-store';
+    res.writeHead(200,{'Content-Type':m,'Cache-Control':cache});res.end(d);
   });
 }
 
@@ -133,5 +127,5 @@ const server=http.createServer(async(req,res)=>{
     safeStatic(req,res);
   }catch(e){console.error(e);send(res,500,{error:'Erro interno do servidor.'});}
 });
-ensureCrests().then(m=>console.log(`Escudos em cache: ${Object.keys(m||{}).length}`)).catch(e=>console.log('Falha ao baixar escudos:',e.message));
+console.log(`Escudos locais: ${Object.keys(readCrestManifest()).length}`);
 server.listen(PORT,'0.0.0.0',()=>console.log(`Brasileirão Manager Online: http://localhost:${PORT}`));

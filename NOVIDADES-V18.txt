@@ -52,3 +52,10 @@ V18.8:
 - v18.11: chat em janela fixa com rolagem interna, sem aumentar a página.
 
 - v18.12: chat removido do painel superior e transferido para uma aba própria com rolagem interna.
+
+- v18.13: próximo adversário atualizado imediatamente ao concluir a rodada e voltar ao Início, inclusive online.
+
+- v18.14: aviso sincronizado de jogo encerrado para o segundo jogador, com placar final.
+- v18.14: chat ordenado da mensagem mais recente para a mais antiga.
+
+- v18.15: limpeza interna, remoção de arquivos de teste, código antigo de download de escudos removido e PNGs otimizados para 256×256.

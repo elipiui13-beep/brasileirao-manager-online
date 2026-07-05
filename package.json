@@ -1,8 +1,12 @@
 {
   "name": "brasileirao-manager-online",
-  "version": "18.1.0",
+  "version": "18.15.0",
   "private": true,
-  "description": "Servidor multiplayer do Brasileirão Manager",
-  "scripts": {"start": "node server.js"},
-  "engines": {"node": ">=18"}
+  "description": "Servidor multiplayer do Brasileirão Manager, com escudos locais otimizados",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
 }
