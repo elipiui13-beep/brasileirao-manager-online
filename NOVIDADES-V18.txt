@@ -81,3 +81,7 @@ V18.8:
 - v18.24: cada partida agora registra a rodada de origem e só pode ser processada uma vez.
 - v18.24: o jogo ao vivo usa uma cópia independente do calendário e grava o resultado apenas no encerramento.
 - v18.24: a próxima rodada é calculada pelo último jogo concluído, impedindo repetição do mesmo adversário.
+
+- v18.25: corrigida a tag JavaScript que impedia a abertura da aba Elenco e das estatísticas do time.
+
+- v18.26: os jogos dos dois técnicos e seus lances aparecem em destaque logo abaixo do relógio e atualizam ao vivo.

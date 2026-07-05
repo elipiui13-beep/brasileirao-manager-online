@@ -58,7 +58,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:8px;borde
 
 /* V15.7: central maior e eventos compactos */
 
-.focus-live-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}.focus-live-card{background:#09261c;border:1px solid #2d6b50;border-radius:12px;padding:12px;min-height:145px}.focus-live-card h3{margin:0 0 7px;font-size:15px}.focus-live-score{font-size:18px;font-weight:1000;text-align:center;padding:7px;border-radius:8px;background:#061b14;margin-bottom:8px}.focus-matchup{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:10px;margin-bottom:10px}.focus-team{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:92px;padding:9px;border-radius:10px;background:#061b14;border:1px solid #ffffff18;text-align:center}.focus-team.mine{border-color:#48df82;box-shadow:inset 0 0 0 1px #48df8240}.focus-team.opponent{border-color:#ffbf47;box-shadow:inset 0 0 0 1px #ffbf4740;background:#281d08}.focus-team-label{font-size:10px;text-transform:uppercase;letter-spacing:.8px;font-weight:900;opacity:.78}.focus-team-name{font-size:15px;font-weight:1000;line-height:1.15}.focus-team img{width:42px;height:42px;object-fit:contain}.focus-versus{font-size:24px;font-weight:1000;color:#ffd46b}.focus-live-events{max-height:115px;overflow-y:auto;font-size:12px}.focus-live-events .event{padding:4px 5px;border-bottom:1px solid #ffffff10}@media(max-width:700px){.focus-live-grid{grid-template-columns:1fr}.focus-matchup{gap:6px}.focus-team-name{font-size:13px}}
+.focus-live-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}.focus-live-card{background:#09261c;border:1px solid #2d6b50;border-radius:12px;padding:12px;min-height:145px}.focus-live-card h3{margin:0 0 7px;font-size:15px}.focus-live-card.friend-match{border-color:#4fa9ff;box-shadow:inset 0 0 0 1px #4fa9ff33}.focus-live-grid{margin-bottom:10px}.focus-live-events{scrollbar-width:thin}.focus-live-score{font-size:18px;font-weight:1000;text-align:center;padding:7px;border-radius:8px;background:#061b14;margin-bottom:8px}.focus-matchup{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:10px;margin-bottom:10px}.focus-team{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:92px;padding:9px;border-radius:10px;background:#061b14;border:1px solid #ffffff18;text-align:center}.focus-team.mine{border-color:#48df82;box-shadow:inset 0 0 0 1px #48df8240}.focus-team.opponent{border-color:#ffbf47;box-shadow:inset 0 0 0 1px #ffbf4740;background:#281d08}.focus-team-label{font-size:10px;text-transform:uppercase;letter-spacing:.8px;font-weight:900;opacity:.78}.focus-team-name{font-size:15px;font-weight:1000;line-height:1.15}.focus-team img{width:42px;height:42px;object-fit:contain}.focus-versus{font-size:24px;font-weight:1000;color:#ffd46b}.focus-live-events{max-height:115px;overflow-y:auto;font-size:12px}.focus-live-events .event{padding:4px 5px;border-bottom:1px solid #ffffff10}@media(max-width:700px){.focus-live-grid{grid-template-columns:1fr}.focus-matchup{gap:6px}.focus-team-name{font-size:13px}}
 .live-match-grid{display:grid;grid-template-columns:minmax(250px,.72fr) minmax(420px,1.55fr);gap:12px;align-items:start}
 .live-events-panel .log{height:430px;font-size:12px}
 .live-events-panel .event{padding:5px 7px}
@@ -572,6 +572,7 @@ function drawLive(){
  if(!live)return;
  if($('clock'))$('clock').textContent=live.minute+"'";
  const d=gameplayDivision||team(manager().team).division||'A';
+ if(typeof renderFocusedOnlineMatches==='function')renderFocusedOnlineMatches();
  const scores=$('scores'+d),log=$('log'+d);
  if(!scores||!log)return;
  const mine=manager().team,opponent=currentOpponentId();
@@ -579,7 +580,6 @@ function drawLive(){
  scores.innerHTML=games.map(g=>`<div class="scoreline ${g.home===mine||g.away===mine?'human':''}"><div>${homeMark(g,g.home)}${teamDisplay(team(g.home))}</div><b>${g.hg} × ${g.ag}</b><div>${teamDisplay(team(g.away))}</div></div>`).join('');
  const ev=live.events.filter(e=>e.division===d);
  log.innerHTML=ev.map(e=>{let cls='';if(e.teamId===mine)cls='my-event';else if(e.teamId===opponent)cls='opponent-event';else if(opponent&&[mine,opponent].includes(e.teamId))cls='match-event';return `<div class="event ${e.type} ${cls}"><b>${e.min}'</b> ${e.text}</div>`}).join('')||"<span class='muted'>A bola está rolando...</span>";
- if(typeof renderFocusedOnlineMatches==='function')renderFocusedOnlineMatches();
 }
 
 
@@ -1024,9 +1024,27 @@ function gameScoreRows(games,liveMode){
     return `<div class="scoreline ${isMine?'human':''}"><div>${homeMark(g,g.home)}${teamDisplay(team(g.home))}</div><b>${score}</b><div>${teamDisplay(team(g.away))}</div></div>`;
   }).join('');
 }
-function onlineManagerMatchInfo(managerIndex){if(!live||!S?.managers?.[managerIndex])return null;const m=S.managers[managerIndex],teamId=m.team,g=(live.games||[]).find(x=>x.home===teamId||x.away===teamId);if(!g)return null;const involved=new Set([g.home,g.away]),events=(live.events||[]).filter(e=>involved.has(e.teamId));return{name:m.name||`Técnico ${managerIndex+1}`,teamId,game:g,events}}
-function focusMatchCard(info,title){if(!info)return'';const g=info.game,ev=info.events.slice(0,12),mineId=info.teamId,opponentId=g.home===mineId?g.away:g.home,mine=team(mineId),opponent=team(opponentId),mineGoals=g.home===mineId?g.hg:g.ag,opponentGoals=g.home===mineId?g.ag:g.hg;return`<div class="focus-live-card"><h3>${title} — ${info.name}</h3><div class="focus-matchup"><div class="focus-team mine"><span class="focus-team-label">Seu time</span>${teamDisplay(mine)}<span class="focus-team-name">${mine?.name||''}</span></div><div class="focus-versus">${mineGoals} × ${opponentGoals}</div><div class="focus-team opponent"><span class="focus-team-label">Adversário</span>${teamDisplay(opponent)}<span class="focus-team-name">${opponent?.name||''}</span></div></div><div class="focus-live-events">${ev.length?ev.map(e=>`<div class="event ${e.type}"><b>${e.min}'</b> ${e.text}</div>`).join(''):`<span class="muted">Sem acontecimentos até agora.</span>`}</div></div>`}
-function renderFocusedOnlineMatches(){const box=$('focusOnlineMatches');if(!box||!live||typeof MP==='undefined'||!MP.online)return;const myIndex=MP.index,otherIndex=MP.players.find(p=>p.managerIndex!==myIndex)?.managerIndex,mine=onlineManagerMatchInfo(myIndex),other=otherIndex===undefined?null:onlineManagerMatchInfo(otherIndex);box.innerHTML=focusMatchCard(mine,'⚽ Seu jogo')+(other?focusMatchCard(other,'👥 Jogo do seu amigo'):'')}
+function onlineManagerMatchInfo(managerIndex,playerData=null){
+ if(!live)return null;
+ const m=S?.managers?.[managerIndex]||null;
+ const teamId=playerData?.teamId??m?.team;
+ if(teamId===undefined||teamId===null)return null;
+ const g=(live.games||[]).find(x=>x.home===teamId||x.away===teamId);
+ if(!g)return null;
+ const involved=new Set([g.home,g.away]);
+ const events=(live.events||[]).filter(e=>involved.has(e.teamId));
+ return{name:playerData?.name||m?.name||`Técnico ${Number(managerIndex)+1}`,teamId,game:g,events}
+}
+function focusMatchCard(info,title){if(!info)return'';const g=info.game,ev=[...(info.events||[])].slice(-14).reverse(),mineId=info.teamId,opponentId=g.home===mineId?g.away:g.home,mine=team(mineId),opponent=team(opponentId),mineGoals=g.home===mineId?g.hg:g.ag,opponentGoals=g.home===mineId?g.ag:g.hg;return`<div class="focus-live-card ${title.includes('amigo')?'friend-match':''}"><h3>${title} — ${info.name}</h3><div class="focus-matchup"><div class="focus-team mine"><span class="focus-team-label">Seu time</span>${teamDisplay(mine)}<span class="focus-team-name">${mine?.name||''}</span></div><div class="focus-versus">${mineGoals} × ${opponentGoals}</div><div class="focus-team opponent"><span class="focus-team-label">Adversário</span>${teamDisplay(opponent)}<span class="focus-team-name">${opponent?.name||''}</span></div></div><div class="focus-live-events">${ev.length?ev.map(e=>`<div class="event ${e.type}"><b>${e.min}'</b> ${e.text}</div>`).join(''):`<span class="muted">Sem acontecimentos até agora.</span>`}</div></div>`}
+function renderFocusedOnlineMatches(){
+ const box=$('focusOnlineMatches');
+ if(!box||!live||typeof MP==='undefined'||!MP.online)return;
+ const me=MP.players.find(p=>Number(p.managerIndex)===Number(MP.index))||{managerIndex:MP.index,name:S?.managers?.[MP.index]?.name,teamId:S?.managers?.[MP.index]?.team};
+ const friend=MP.players.find(p=>Number(p.managerIndex)!==Number(MP.index))||null;
+ const mine=onlineManagerMatchInfo(Number(me.managerIndex),me);
+ const other=friend?onlineManagerMatchInfo(Number(friend.managerIndex),friend):null;
+ box.innerHTML=focusMatchCard(mine,'⚽ Seu jogo')+(other?focusMatchCard(other,'👥 Jogo do seu amigo'):`<div class="focus-live-card friend-match"><h3>👥 Jogo do seu amigo</h3><div class="muted">Aguardando os dados da partida do outro técnico.</div></div>`)
+}
 function upcomingManagerMatchInfo(managerIndex){
  const m=S?.managers?.[managerIndex];if(!m)return null;
  const t=team(m.team);if(!t)return null;
@@ -1057,11 +1075,11 @@ function gameplay(selectedDivision=null){
     <div class="card">
       <div id="clock" class="clock">${hasLive?(live.minute+"'"):'—'}</div>
       <div class="muted" style="text-align:center;margin-bottom:8px">${roundLabel}</div>
+      ${(hasLive&&typeof MP!=='undefined'&&MP.online)?`<div id="focusOnlineMatches" class="focus-live-grid"></div>`:''}
+      ${(!hasLive&&typeof MP!=='undefined'&&MP.online)?`<div id="focusUpcomingMatches" class="focus-live-grid"></div>`:''}
       <div class="controls" style="justify-content:center">
         ${isActive?((typeof MP!=='undefined'&&MP.online&&!MP.host)?`<span class="muted">A partida é controlada pelo anfitrião.</span>`:`<button id="pause" class="btn" onclick="toggleLivePause()">${live.paused?'Continuar':'Pausar'}</button><button class="btn" onclick="changeLiveSpeed()">Velocidade ×<span id="speed">${live.speed}</span></button>`):`<button class="btn primary" onclick="startLive()">${S.round>0?'Iniciar próxima rodada':'Iniciar rodada'}</button>`}
       </div>
-      ${(hasLive&&typeof MP!=='undefined'&&MP.online)?`<div id="focusOnlineMatches" class="focus-live-grid"></div>`:''}
-      ${(!hasLive&&typeof MP!=='undefined'&&MP.online)?`<div id="focusUpcomingMatches" class="focus-live-grid"></div>`:''}
     </div>
     ${seriesTabs('gameplay',d)}
     <div class="live-match-grid">
@@ -1095,7 +1113,8 @@ trimNewsHistory();
 
 </script>
 <script src="expansion.js"></script>
-<script src="multiplayer.js">
+<script src="multiplayer.js"></script>
+<script>
 
 // ===== V18.22: escalação por poder + condição, condição no campo e estatísticas do elenco =====
 let squadView='lineup';
