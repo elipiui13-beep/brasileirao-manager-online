@@ -39,7 +39,7 @@ function json(req) {
 }
 function auth(room, t) { return room.players.find(p=>p.token===t); }
 function publicRoom(room) {
-  return { code:room.code, version:room.version, state:room.state, hostToken:room.hostToken, players:room.players.map(p=>({name:p.name,managerIndex:p.managerIndex,teamId:p.teamId,ready:!!room.ready[p.token],onlineAt:p.onlineAt})) };
+  return { code:room.code, version:room.version, liveVersion:room.liveVersion||0, live:room.live||null, state:room.state, players:room.players.map(p=>({name:p.name,managerIndex:p.managerIndex,teamId:p.teamId,ready:!!room.ready[p.token],onlineAt:p.onlineAt})) };
 }
 function safeStatic(req,res){
   let u = decodeURIComponent(req.url.split('?')[0]);
@@ -60,7 +60,7 @@ const server=http.createServer(async(req,res)=>{
   try{
     if(req.method==='POST' && req.url.startsWith('/api/rooms/create')){
       const b=await json(req); let c; do{c=code()}while(rooms.has(c));
-      const t=token(); const room={code:c,hostToken:t,version:1,state:b.state,players:[{token:t,name:b.name||'Técnico 1',managerIndex:0,teamId:b.teamId,onlineAt:Date.now()}],ready:{},createdAt:Date.now()};
+      const t=token(); const room={code:c,hostToken:t,version:1,liveVersion:0,live:null,state:b.state,players:[{token:t,name:b.name||'Técnico 1',managerIndex:0,teamId:b.teamId,onlineAt:Date.now()}],ready:{},createdAt:Date.now()};
       rooms.set(c,room);persist(room);return send(res,200,{code:c,token:t,managerIndex:0,room:publicRoom(room)});
     }
     if(parts[0]==='api'&&parts[1]==='rooms'&&parts[2]){
@@ -82,6 +82,11 @@ const server=http.createServer(async(req,res)=>{
       if(req.method==='PUT'&&parts[3]==='state'){
         const b=await json(req); if(typeof b.version==='number'&&b.version<room.version-8)return send(res,409,{error:'Estado muito antigo.',room:publicRoom(room)});
         room.state=b.state; room.version++; room.ready={};persist(room);return send(res,200,{version:room.version});
+      }
+      if(req.method==='POST'&&parts[3]==='live'){
+        if(t!==room.hostToken)return send(res,403,{error:'Somente o anfitrião pode transmitir a rodada.'});
+        const b=await json(req); room.live=b.live||null; room.liveVersion=(room.liveVersion||0)+1;
+        return send(res,200,{liveVersion:room.liveVersion});
       }
       if(req.method==='POST'&&parts[3]==='ready'){
         const b=await json(req); room.ready[t]=b.ready!==false; room.version++;persist(room);
