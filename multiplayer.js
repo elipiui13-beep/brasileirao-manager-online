@@ -15,13 +15,13 @@ function overlay(){
   #mpLobby .box{width:min(760px,100%);background:#111c31;border:1px solid #33466b;border-radius:18px;padding:24px;box-shadow:0 25px 80px #0009}
   #mpLobby h1{margin-top:0}#mpLobby .tabs{display:flex;gap:8px;margin:18px 0}#mpLobby input,#mpLobby select{width:100%;padding:12px;margin:6px 0 12px;border-radius:9px;border:1px solid #42577e;background:#091326;color:#fff}
   #mpLobby .row{display:grid;grid-template-columns:1fr 1fr;gap:18px}#mpLobby button{padding:12px 16px;border:0;border-radius:9px;font-weight:800;cursor:pointer;background:#2f75ff;color:white}.muted{opacity:.72}.err{color:#ff7f87;font-weight:700}
-  #mpBar{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:9000;background:#0c1729f5;border:2px solid #4a76bd;border-radius:16px;padding:12px 14px;width:min(680px,calc(100% - 24px));color:#fff;box-shadow:0 12px 38px #000a;display:grid;grid-template-columns:1fr auto;gap:10px 16px;align-items:center}
-  #mpBar .mp-room{font-size:12px;opacity:.8}.mp-status{display:flex;gap:16px;flex-wrap:wrap;margin-top:4px}.mp-ok{color:#79e89a;font-weight:800}.mp-wait{color:#ffd36b;font-weight:800}
-  #mpBar .mp-actions{display:flex;gap:8px;align-items:center}#mpBar button{border:0;border-radius:10px;cursor:pointer;font-weight:900;min-height:44px;padding:10px 16px}
-  #mpReadyBtn,.mp-inline-ready{background:linear-gradient(135deg,#20b35a,#35df78);color:#04150a;font-size:16px;box-shadow:0 5px 18px #19b85b55}#mpReadyBtn.ready,.mp-inline-ready.ready{background:linear-gradient(135deg,#d28d22,#ffc45c);color:#241400}
-  .mp-inline-actions{display:inline-flex;gap:10px;align-items:center;flex-wrap:wrap}.mp-inline-ready{border:0;border-radius:10px;cursor:pointer;font-weight:900;min-height:44px;padding:10px 16px}
-  #mpCopyBtn{background:#344967;color:#fff}.mp-live-badge{display:inline-flex;align-items:center;gap:7px;background:#9c1d2c;color:#fff;border-radius:999px;padding:5px 10px;font-weight:900;font-size:12px;animation:mpPulse 1.2s infinite}
-  @keyframes mpPulse{50%{opacity:.65}}@media(max-width:650px){#mpLobby .row{grid-template-columns:1fr}#mpBar{grid-template-columns:1fr;bottom:8px}.mp-actions{width:100%}#mpBar button{flex:1}}
+  #mpTop{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:6px;max-width:760px;color:#fff}
+  #mpTop .mp-summary{background:#0c1729;border:1px solid #4a76bd;border-radius:12px;padding:7px 10px;box-shadow:0 6px 18px #0005}
+  #mpTop .mp-room{font-size:11px;opacity:.8}.mp-status{display:flex;gap:10px;flex-wrap:wrap;margin-top:3px;font-size:12px}.mp-ok{color:#79e89a;font-weight:800}.mp-wait{color:#ffd36b;font-weight:800}
+  #mpTop .mp-actions{display:flex;gap:6px;align-items:center}#mpTop button{border:0;border-radius:9px;cursor:pointer;font-weight:900;min-height:34px;padding:7px 11px}
+  .mp-inline-actions{display:inline-flex;gap:10px;align-items:center;flex-wrap:wrap}.mp-inline-ready{font-size:inherit!important}
+  #mpCopyBtn{background:#344967;color:#fff}.mp-live-badge{display:inline-flex;align-items:center;gap:7px;background:#9c1d2c;color:#fff;border-radius:999px;padding:4px 8px;font-weight:900;font-size:11px;animation:mpPulse 1.2s infinite}
+  @keyframes mpPulse{50%{opacity:.65}}@media(max-width:760px){#mpLobby .row{grid-template-columns:1fr}#mpTop{justify-content:flex-start;width:100%;max-width:none}main#game header{align-items:flex-start;flex-wrap:wrap}#mpTop .mp-summary{width:100%}}
   </style><div class="box"><h1>🌐 Brasileirão Manager Online</h1><p class="muted">Crie uma carreira ou entre usando o código enviado pelo seu amigo.</p><div class="row"><section><h2>Criar sala</h2><input id="mpCreateName" placeholder="Seu nome"><div class="muted" style="margin:4px 0 14px">Seu clube será sorteado aleatoriamente entre os times da Série C.</div><button id="mpCreate">Criar carreira online</button></section><section><h2>Entrar na sala</h2><input id="mpCode" maxlength="6" placeholder="Código da sala"><input id="mpJoinName" placeholder="Seu nome"><div class="muted" style="margin:4px 0 14px">Você receberá outro clube aleatório da Série C.</div><button id="mpJoin">Entrar na carreira</button></section></div><p id="mpMsg" class="err"></p><hr><button id="mpSolo" style="background:#47556d">Continuar no modo individual</button></div>`;document.body.appendChild(el);
   el.querySelector('#mpSolo').onclick=()=>el.remove();el.querySelector('#mpCreate').onclick=createRoom;el.querySelector('#mpJoin').onclick=joinRoom;
 }
@@ -57,16 +57,16 @@ function enhanceGameButtons(){
   document.body.classList.toggle('mp-host',!!MP.host);document.body.classList.toggle('mp-guest',!MP.host);
   const starts=[...document.querySelectorAll('button[onclick*="startLive"]')];
   starts.forEach(btn=>{
-    if(!MP.host){btn.style.display='none';btn.setAttribute('aria-hidden','true');return}
-    btn.style.display='';btn.removeAttribute('aria-hidden');
     let wrap=btn.parentElement;
     if(!wrap||!wrap.classList.contains('mp-inline-actions')){
       const nw=document.createElement('span');nw.className='mp-inline-actions';
       btn.parentNode.insertBefore(nw,btn);nw.appendChild(btn);wrap=nw;
     }
+    if(!MP.host){btn.style.display='none';btn.setAttribute('aria-hidden','true')}
+    else{btn.style.display='';btn.removeAttribute('aria-hidden')}
     let ready=wrap.querySelector('.mp-inline-ready');
-    if(!ready){ready=document.createElement('button');ready.type='button';ready.className='mp-inline-ready';ready.onclick=window.mpToggleReady;wrap.insertBefore(ready,btn)}
-    const st=readyLabel();ready.classList.toggle('ready',st.ready);if(ready.textContent!==st.label)ready.textContent=st.label;
+    if(!ready){ready=document.createElement('button');ready.type='button';ready.className='btn primary mp-inline-ready';ready.onclick=window.mpToggleReady;wrap.insertBefore(ready,btn)}
+    const st=readyLabel();ready.className='btn primary mp-inline-ready';ready.classList.toggle('ready',st.ready);ready.textContent=st.label;
   });
 }
 function install(){
@@ -83,7 +83,15 @@ function install(){
   window.mpCopyCode=()=>navigator.clipboard?.writeText(MP.code).then(()=>alert('Código copiado: '+MP.code)).catch(()=>prompt('Copie o código:',MP.code));
   const observer=new MutationObserver(()=>enhanceGameButtons());observer.observe(document.body,{childList:true,subtree:true});setTimeout(enhanceGameButtons,0);
 }
-function drawBar(){if(!MP.online)return;let b=document.getElementById('mpBar');if(!b){b=document.createElement('div');b.id='mpBar';document.body.appendChild(b)}const me=MP.players.find(p=>p.managerIndex===MP.index),other=MP.players.find(p=>p.managerIndex!==MP.index),isLive=!!(live&&live.active),st=readyLabel();const readyBtn=MP.host?'':`<button id="mpReadyBtn" class="${st.ready?'ready':''}" onclick="mpToggleReady()">${st.label}</button>`;b.innerHTML=`<div><div><b>🌐 Sala ${MP.code}</b> <span class="mp-room">${MP.host?'• Você é o anfitrião':'• Conectado'}</span> ${isLive?'<span class="mp-live-badge">● RODADA AO VIVO</span>':''}</div><div class="mp-status"><span class="${me&&me.ready?'mp-ok':'mp-wait'}">Você: ${me&&me.ready?'✓ Pronto':'○ Ainda não pronto'}</span><span class="${other&&other.ready?'mp-ok':'mp-wait'}">${other?other.name:'Aguardando amigo'}: ${other?(other.ready?'✓ Pronto':'○ Ainda não pronto'):'—'}</span></div></div><div class="mp-actions">${readyBtn}<button id="mpCopyBtn" onclick="mpCopyCode()">Código</button></div>`;setTimeout(enhanceGameButtons,0)}
+function drawBar(){
+  if(!MP.online)return;
+  const header=document.querySelector('main#game header');if(!header)return;
+  let b=document.getElementById('mpTop');
+  if(!b){b=document.createElement('div');b.id='mpTop';header.appendChild(b)}
+  const me=MP.players.find(p=>p.managerIndex===MP.index),other=MP.players.find(p=>p.managerIndex!==MP.index),isLive=!!(live&&live.active);
+  b.innerHTML=`<div class="mp-summary"><div><b>🌐 Sala ${MP.code}</b> <span class="mp-room">${MP.host?'• Anfitrião':'• Conectado'}</span> ${isLive?'<span class="mp-live-badge">● AO VIVO</span>':''}</div><div class="mp-status"><span class="${me&&me.ready?'mp-ok':'mp-wait'}">Você: ${me&&me.ready?'✓ Pronto':'○ Não pronto'}</span><span class="${other&&other.ready?'mp-ok':'mp-wait'}">${other?other.name:'Aguardando amigo'}: ${other?(other.ready?'✓ Pronto':'○ Não pronto'):'—'}</span></div></div><div class="mp-actions"><button id="mpCopyBtn" onclick="mpCopyCode()">Copiar código</button></div>`;
+  setTimeout(enhanceGameButtons,0)
+}
 function startPoll(){clearInterval(MP.poll);MP.poll=setInterval(async()=>{if(!MP.online||document.hidden)return;try{const r=await api(`/api/rooms/${MP.code}`);const changed=r.version>MP.version||(r.liveVersion||0)>MP.liveVersion;applyRoom(r,changed&&r.version>MP.version);if(changed)saveLocal()}catch(e){console.warn(e.message)}},650)}
 async function resume(){try{const x=JSON.parse(sessionStorage.getItem('bm_mp')||'null');if(!x)return false;MP.code=x.code;MP.token=x.token;MP.index=x.index;MP.host=x.host;MP.online=true;const r=await api(`/api/rooms/${MP.code}`);applyRoom(r,true);install();startPoll();document.getElementById('mpLobby')?.remove();saveLocal();openGame();return true}catch{return false}}
 window.addEventListener('load',async()=>{overlay();await resume()});
