@@ -19,35 +19,7 @@ function readCrestManifest(){ try{return JSON.parse(fs.readFileSync(CREST_MANIFE
 function writeCrestManifest(map){ fs.writeFileSync(CREST_MANIFEST, JSON.stringify(map,null,2),'utf8'); }
 async function fetchJson(url){ const r=await fetch(url,{headers:{'User-Agent':'BrasileiraoManager/18.7'}}); if(!r.ok) throw new Error('http '+r.status); return r.json(); }
 async function fetchBytes(url){ const r=await fetch(url,{headers:{'User-Agent':'BrasileiraoManager/18.7'}}); if(!r.ok) throw new Error('http '+r.status); const ab=await r.arrayBuffer(); return Buffer.from(ab); }
-async function ensureCrests(){
-  const manifest=readCrestManifest();
-  const teams=Object.keys(CREST_HINTS);
-  let changed=false;
-  for(const name of teams){
-    if(manifest[name] && fs.existsSync(path.join(ROOT, manifest[name]))) continue;
-    const aliases=CREST_HINTS[name]||[name];
-    for(const alias of aliases){
-      try{
-        const url='https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t='+encodeURIComponent(alias);
-        const data=await fetchJson(url); const teamsFound=data&&data.teams||[];
-        const found=teamsFound.find(t=>String(t.strTeam||'').toLowerCase().includes(String(alias).toLowerCase().split(' ')[0])) || teamsFound[0];
-        const badge=found&&(found.strBadge||found.strTeamBadge||found.strLogo);
-        if(!badge) continue;
-        let ext=((badge.split('?')[0].match(/\.(png|jpg|jpeg|webp|svg)$/i)||[])[1]||'png').toLowerCase();
-        if(ext==='jpeg') ext='jpg';
-        const rel=path.join('assets','crests',`${slugify(name)}.${ext}`);
-        const abs=path.join(ROOT, rel);
-        const buf=await fetchBytes(badge);
-        fs.writeFileSync(abs, buf);
-        manifest[name]=rel.split(path.sep).join('/');
-        changed=true;
-        break;
-      }catch(e){}
-    }
-  }
-  if(changed) writeCrestManifest(manifest);
-  return manifest;
-}
+async function ensureCrests(){return readCrestManifest()}
 
 const rooms = new Map();
 

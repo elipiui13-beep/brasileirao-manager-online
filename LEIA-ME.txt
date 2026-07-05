@@ -8,3 +8,6 @@ Versão 16.6: sons de clique e navegação removidos; permanecem apenas os sons 
 
 
 Escudos oficiais: o servidor baixa automaticamente e guarda em assets/crests na primeira execução com internet, passando a servir os arquivos localmente.
+
+
+Escudos oficiais reais: integrados localmente na pasta assets/crests usando arquivos PNG fornecidos pelo usuário.

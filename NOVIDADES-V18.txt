@@ -48,3 +48,7 @@ V18.5
 
 V18.8:
 - Ficha completa clicável para jogadores do elenco, adversários, mercado nacional, mercado internacional, agentes livres e categorias de base.
+
+- v18.11: chat em janela fixa com rolagem interna, sem aumentar a página.
+
+- v18.12: chat removido do painel superior e transferido para uma aba própria com rolagem interna.

@@ -1,1 +1,1 @@
-Escudos locais baixados automaticamente pelo servidor em assets/crests na primeira execução online.
+Escudos reais dos clubes das Séries A, B e C armazenados localmente em PNG. O jogo não precisa de internet para exibi-los.

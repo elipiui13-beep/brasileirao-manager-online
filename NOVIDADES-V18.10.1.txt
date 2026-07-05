@@ -1,0 +1,1 @@
+Correção dos escudos reais: o mapa interno do jogo agora aponta para os arquivos PNG locais, em vez dos antigos SVG removidos.

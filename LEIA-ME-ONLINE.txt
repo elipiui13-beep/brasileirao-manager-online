@@ -46,3 +46,6 @@ SALVAR E CONTINUAR A CARREIRA
 
 
 Escudos oficiais: o servidor baixa automaticamente e guarda em assets/crests na primeira execução com internet, passando a servir os arquivos localmente.
+
+
+Escudos oficiais reais: integrados localmente na pasta assets/crests usando arquivos PNG fornecidos pelo usuário.
