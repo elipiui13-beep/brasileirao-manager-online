@@ -457,17 +457,30 @@ const tickV14=tick;tick=function(g,min){
  let fresh=live.events.slice(0,live.events.length-before);
  fresh.forEach(e=>{if(e.type==='cardev'){let t=team(e.teamId),p=t?.players.find(x=>e.text.includes(x.name));if(p){p.matchYellows=(p.matchYellows||0)+1;if(p.matchYellows>=2&&!p.matchSentOff){p.matchSentOff=true;p.starter=false;e.text+=` Segundo amarelo: ${p.name} está expulso.`}}}if(e.type==='redcard'){let t=team(e.teamId),p=t?.players.find(x=>e.text.includes(x.name));if(p){p.matchSentOff=true;p.starter=false}}if(e.type==='injury'){let t=team(e.teamId),p=t?.players.find(x=>e.text.includes(x.name));if(p&&!p.playInjured){p.matchInjuredOut=true;p.starter=false}}});
 }
+function roundCompletedInCalendar(roundIndex){
+ return ['A','B','C'].every(d=>{const games=S.schedules?.[d]?.[roundIndex]||[];return games.length>0&&games.every(g=>g.played===true)})
+}
+function firstUnplayedRound(){
+ for(let r=0;r<38;r++)if(!roundCompletedInCalendar(r))return r;
+ return 38
+}
+function fixtureKeyForRound(roundIndex){
+ return ['A','B','C'].flatMap(d=>(S.schedules?.[d]?.[roundIndex]||[]).map(g=>`${d}:${g.home}-${g.away}`)).sort().join('|')
+}
 function startLive(){
  ensureV14();let t=team(manager().team);repairLineup(t);let invalid=t.players.filter(p=>p.starter&&!availableForMatch(p));if(invalid.length){alert(`Revise a escalação: ${invalid.map(p=>p.name).join(', ')} não pode jogar.`);setActiveNav('squad');return squad()}if(t.players.filter(p=>p.starter).length!==11){alert('É necessário escalar exatamente 11 titulares.');setActiveNav('squad');return squad()}if(live&&live.active){setActiveNav('gameplay');return render('gameplay')}
- let savedRound=Number.isFinite(Number(S.round))?Number(S.round):0;
- let completed=Number.isFinite(Number(S.lastCompletedRound))?Number(S.lastCompletedRound):-1;
- let roundIndex=Math.max(savedRound,completed+1);
+ const savedRound=Number.isFinite(Number(S.round))?Number(S.round):0;
+ const completed=Number.isFinite(Number(S.lastCompletedRound))?Number(S.lastCompletedRound):-1;
+ const calendarRound=firstUnplayedRound();
+ let roundIndex=Math.max(savedRound,completed+1,calendarRound);
+ while(roundIndex<38&&(roundCompletedInCalendar(roundIndex)||fixtureKeyForRound(roundIndex)===S.lastCompletedFixtureKey))roundIndex++;
  if(roundIndex>=38){endSeason();return}
  S.round=roundIndex;S.turn=0;initializeMatchState();
- let games=['A','B','C'].flatMap(d=>(S.schedules?.[d]?.[roundIndex]||[]).map(g=>({...g,division:d,hg:0,ag:0,played:false})));
+ const games=['A','B','C'].flatMap(d=>(S.schedules?.[d]?.[roundIndex]||[]).map(g=>({...g,division:d,hg:0,ag:0,played:false})));
  if(!games.length){alert('Não foi possível localizar os jogos da próxima rodada.');return}
- let fixtureKey=games.map(g=>`${g.division}:${g.home}-${g.away}`).sort().join('|');
+ const fixtureKey=games.map(g=>`${g.division}:${g.home}-${g.away}`).sort().join('|');
  live={minute:0,games,events:[],speed:1,paused:false,active:true,finished:false,processed:false,userSubs:0,roundIndex,fixtureKey};
+ save();
  setActiveNav('gameplay');render('gameplay');live.timer=setInterval(liveTick,600)
 }
 function updatePlayerPerformanceV15(t,g,isHome){let scored=isHome?g.hg:g.ag,conceded=isHome?g.ag:g.hg,result=scored>conceded?1:scored===conceded?0:-1;t.players.forEach(p=>{let mins=p.matchMinutes||0;if(mins<=0)return;p.appearances=(p.appearances||0)+1;p.minutes=(p.minutes||0)+mins;let match=6.25+result*.42+(p.matchGoals||0)*.65+(p.matchAssists||0)*.35-(p.matchSentOff?.8:0)-(p.matchYellows||0)*.08+(Math.random()-.5)*.45;p.matchRating=Math.max(3.5,Math.min(10,match));p.seasonRating=((p.seasonRating||6.5)*(p.appearances-1)+p.matchRating)/p.appearances;p.form=Math.max(4.5,Math.min(9.5,(p.form||6.5)*.75+p.matchRating*.25));let ageFactor=p.age<=23?.004:p.age>=32?-.003:0,perf=(p.matchRating-6.5)*.006+ageFactor,old=p.value;p.value=Math.max(200000,Math.round(old*(1+Math.max(-.025,Math.min(.035,perf)))/50000)*50000);p.valueTrend=old?((p.value-old)/old*100):0})}
@@ -487,7 +500,7 @@ function finishRound(){
  live.processed=true;
  const playedRound=Number.isFinite(Number(live.roundIndex))?Number(live.roundIndex):(Number(S.round)||0);
  live.games.forEach(g=>{g.played=true;let scheduled=S.schedules?.[g.division]?.[playedRound]?.find(x=>x.home===g.home&&x.away===g.away);if(scheduled)Object.assign(scheduled,{hg:g.hg,ag:g.ag,played:true});let h=team(g.home),a=team(g.away);h.played++;a.played++;h.gf+=g.hg;h.ga+=g.ag;a.gf+=g.ag;a.ga+=g.hg;if(g.hg>g.ag){h.w++;h.pts+=3;a.l++}else if(g.ag>g.hg){a.w++;a.pts+=3;h.l++}else{h.d++;a.d++;h.pts++;a.pts++}updatePlayerPerformanceV15(h,g,true);updatePlayerPerformanceV15(a,g,false);updateFitnessAfterMatchV15(h);updateFitnessAfterMatchV15(a);let gate=stadiumIncome(h,g);if(h.id===manager().team&&gate)S.news.unshift(`${h.name} arrecadou ${fmt(gate)} com ${h.stadium.lastAttendance.toLocaleString('pt-BR')} torcedores no estádio.`);[h,a].forEach(t=>{t.cash+=(t.division==='A'?2.2:t.division==='B'?.9:.4)*1e6;recoverInjuriesV15(t);processDisciplineAfterRound(t);repairLineup(t)})});
- let m=manager(),my=team(m.team),myGame=live.games.find(g=>g.home===my.id||g.away===my.id);if(myGame){let gf=myGame.home===my.id?myGame.hg:myGame.ag,ga=myGame.home===my.id?myGame.ag:myGame.hg;if(gf>ga){m.careerPoints+=3;m.reputation=Math.min(100,m.reputation+1)}else if(gf===ga)m.careerPoints+=1;else m.reputation=Math.max(1,m.reputation-(Math.random()<.2?1:0))}S.news.unshift(`Rodada ${playedRound+1} da temporada ${S.season} concluída.`);S.lastCompletedRound=Math.max(Number(S.lastCompletedRound)||-1,playedRound);S.round=Math.max(Number(S.round)||0,playedRound+1);payWages();S.teams.forEach(evaluateBoard);if(S.round%3===0)aiTransferWindow();generateCupRound();maybeGenerateOffers();if(S.round>=38)endSeason();else{save();setTimeout(()=>{alert('Fim da rodada.');setActiveNav('gameplay');render('gameplay');let c=$('content');if(c)c.insertAdjacentHTML('afterbegin',`<div class="card"><b>Rodada concluída.</b> Os placares, minutos e estatísticas foram salvos. <button class="btn primary small" onclick="goHomeAfterRound()">Continuar</button></div>`)},150)}}
+ let m=manager(),my=team(m.team),myGame=live.games.find(g=>g.home===my.id||g.away===my.id);if(myGame){let gf=myGame.home===my.id?myGame.hg:myGame.ag,ga=myGame.home===my.id?myGame.ag:myGame.hg;if(gf>ga){m.careerPoints+=3;m.reputation=Math.min(100,m.reputation+1)}else if(gf===ga)m.careerPoints+=1;else m.reputation=Math.max(1,m.reputation-(Math.random()<.2?1:0))}S.news.unshift(`Rodada ${playedRound+1} da temporada ${S.season} concluída.`);S.lastCompletedRound=Math.max(Number(S.lastCompletedRound)||-1,playedRound);S.lastCompletedFixtureKey=live.fixtureKey||fixtureKeyForRound(playedRound);S.round=Math.max(playedRound+1,firstUnplayedRound());payWages();S.teams.forEach(evaluateBoard);if(S.round%3===0)aiTransferWindow();generateCupRound();maybeGenerateOffers();if(S.round>=38)endSeason();else{save();setTimeout(()=>{alert('Fim da rodada.');setActiveNav('gameplay');render('gameplay');let c=$('content');if(c)c.insertAdjacentHTML('afterbegin',`<div class="card"><b>Rodada concluída.</b> Os placares, minutos e estatísticas foram salvos. <button class="btn primary small" onclick="goHomeAfterRound()">Continuar</button></div>`)},150)}}
 const resetStatsOldV15=resetStats;resetStats=function(){processExpiredContracts();S.teams.forEach(t=>{evolvePlayers(t);t.played=t.w=t.d=t.l=t.gf=t.ga=t.pts=0;t.players.forEach(p=>{p.goals=p.assists=p.appearances=p.yellow=p.red=p.minutes=0;p.seasonRating=6.5;p.form=6.5;p.age++;p.value=Math.max(200000,Math.round(p.value*(p.age<24?1.025:p.age>31?.94:.995)/50000)*50000)});t.board=makeBoard(t);repairLineup(t)});initCupBracket()}
 
 
@@ -496,7 +509,9 @@ function repairRoundProgress(){
  S.round=Math.max(0,Number(S.round)||0);
  if(!Number.isFinite(Number(S.lastCompletedRound)))S.lastCompletedRound=S.round-1;
  S.lastCompletedRound=Math.max(-1,Math.min(37,Number(S.lastCompletedRound)));
- if(S.round<=S.lastCompletedRound)S.round=S.lastCompletedRound+1;
+ const calendarRound=typeof firstUnplayedRound==='function'?firstUnplayedRound():S.lastCompletedRound+1;
+ S.round=Math.max(S.round,S.lastCompletedRound+1,calendarRound);
+ if(S.round>38)S.round=38;
 }
 repairRoundProgress();
 init();
@@ -663,7 +678,7 @@ function endSeason(){
  S.news.unshift(`🏆 ${champ.name} é campeão brasileiro de ${S.season}.`);
  S.news.unshift(`Acessos: ${upB.map(x=>x.name).join(', ')} à Série A; ${upC.map(x=>x.name).join(', ')} à Série B.`);
  S.news.unshift(`Rebaixados: ${downA.map(x=>x.name).join(', ')} à Série B; ${downB.map(x=>x.name).join(', ')} à Série C.`);
- S.season++;S.round=0;S.offers=[];
+ S.season++;S.round=0;S.lastCompletedRound=-1;S.lastCompletedFixtureKey=null;S.offers=[];
  resetStats();
  replenishRosters();
  S.schedules=buildSchedules();save();
@@ -1126,7 +1141,7 @@ function lineupSelectionScore(p){
 }
 function playerOption(p,role){
  const off=(p.naturalPos||p.pos)!==role?` ⚠ ${p.naturalPos||p.pos}`:'';
- return `<option value="${p.id}">${p.name} • Poder ${effectiveRating(p).toFixed(1)} • Condição ${Math.round(p.fitness??100)}%${off}</option>`
+ return `<option value="${p.id}">${p.name} • Posição ${(p.naturalPos||p.pos)} • Poder ${effectiveRating(p).toFixed(1)} • Condição ${Math.round(p.fitness??100)}%${off}</option>`
 }
 function fieldLineup(t){
  const layout=FIELD_LAYOUTS[t.formation]||FIELD_LAYOUTS['4-3-3'];
@@ -1186,4 +1201,92 @@ const resetStatsV1822Base=resetStats;
 resetStats=function(){const r=resetStatsV1822Base.apply(this,arguments);S.teams.forEach(t=>t.players.forEach(p=>{p.passes=0;p.keyPasses=0}));return r};
 
 </script>
+
+<style>
+.online-dual-live{margin-top:14px;border-top:1px solid #ffffff18;padding-top:12px}
+.online-dual-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.online-dual-card{background:#071e17;border:2px solid #32c875;border-radius:14px;padding:12px;min-height:150px}
+.online-dual-card.friend{border-color:#4da3ff}
+.online-dual-title{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;font-weight:1000}
+.online-dual-match{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:8px}
+.online-dual-team{text-align:center;background:#04140f;border-radius:10px;padding:8px;min-height:82px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+.online-dual-team img{width:40px;height:40px;object-fit:contain}
+.online-dual-score{font-size:24px;font-weight:1000;color:#ffd66b;white-space:nowrap}
+.online-dual-events{margin-top:10px;max-height:112px;overflow-y:auto;font-size:12px}
+.online-dual-events .event{padding:4px 5px;border-bottom:1px solid #ffffff12}
+.online-live-ticker{margin-top:12px;background:#030f0b;border:1px solid #ffffff20;border-radius:10px;padding:9px;max-height:120px;overflow-y:auto}
+.online-live-ticker h4{margin:0 0 7px}
+.online-live-ticker .ticker-row{padding:5px 6px;border-bottom:1px solid #ffffff12;font-size:13px}
+@media(max-width:760px){.online-dual-grid{grid-template-columns:1fr}.online-dual-score{font-size:20px}}
+</style>
+<script>
+// ===== V18.28: central online realmente ligada à aba Jogo =====
+function onlineManagerIndexesV1828(){
+ const mine=Number(MP?.index??S?.turn??0);
+ let other=MP?.players?.find(p=>Number(p.managerIndex)!==mine)?.managerIndex;
+ if(other===undefined||other===null){
+  other=(S?.managers||[]).map((_,i)=>i).find(i=>i!==mine);
+ }
+ return [mine,other===undefined?null:Number(other)]
+}
+function managerLiveInfoV1828(managerIndex){
+ if(managerIndex===null||managerIndex===undefined)return null;
+ const m=S?.managers?.[managerIndex];if(!m)return null;
+ const teamId=m.team;
+ const sourceGames=live?.games||[];
+ let game=sourceGames.find(g=>g.home===teamId||g.away===teamId);
+ if(!game){
+  const t=team(teamId),scheduled=S?.schedules?.[t?.division]?.[S?.round||0]?.find(g=>g.home===teamId||g.away===teamId);
+  if(scheduled)game={...scheduled,hg:0,ag:0};
+ }
+ if(!game)return null;
+ const homeName=team(game.home)?.name||'',awayName=team(game.away)?.name||'';
+ const events=(live?.events||[]).filter(e=>e.teamId===game.home||e.teamId===game.away||String(e.text||'').includes(homeName)||String(e.text||'').includes(awayName));
+ return{managerIndex,name:m.name||`Técnico ${managerIndex+1}`,teamId,game,events}
+}
+function onlineGameCardV1828(info,title,isFriend=false){
+ if(!info)return`<div class="online-dual-card ${isFriend?'friend':''}"><div class="online-dual-title">${title}</div><div class="muted">Partida ainda não localizada.</div></div>`;
+ const g=info.game,mine=info.teamId,opp=g.home===mine?g.away:g.home;
+ const mineGoals=g.home===mine?g.hg:g.ag,oppGoals=g.home===mine?g.ag:g.hg;
+ const ev=[...(info.events||[])].slice(-10).reverse();
+ return`<div class="online-dual-card ${isFriend?'friend':''}">
+  <div class="online-dual-title"><span>${title}</span><span class="muted">${info.name}</span></div>
+  <div class="online-dual-match">
+   <div class="online-dual-team"><small>${isFriend?'Time do seu amigo':'Seu time'}</small>${teamDisplay(team(mine))}</div>
+   <div class="online-dual-score">${live?mineGoals:'—'} × ${live?oppGoals:'—'}</div>
+   <div class="online-dual-team"><small>Adversário</small>${teamDisplay(team(opp))}</div>
+  </div>
+  <div class="online-dual-events">${ev.length?ev.map(e=>`<div class="event ${e.type||''}"><b>${e.min??0}'</b> ${e.text}</div>`).join(''):`<span class="muted">Sem lances registrados até agora.</span>`}</div>
+ </div>`
+}
+function renderOnlineDualCenterV1828(){
+ const box=$('onlineDualCenter');
+ if(!box||typeof MP==='undefined'||!MP.online)return;
+ const [mineIndex,friendIndex]=onlineManagerIndexesV1828();
+ const mine=managerLiveInfoV1828(mineIndex),friend=managerLiveInfoV1828(friendIndex);
+ const combined=[];
+ if(mine)mine.events.forEach(e=>combined.push({...e,_label:'Seu jogo'}));
+ if(friend)friend.events.forEach(e=>combined.push({...e,_label:'Jogo do amigo'}));
+ combined.sort((a,b)=>(b.min||0)-(a.min||0));
+ box.innerHTML=`<div class="online-dual-grid">${onlineGameCardV1828(mine,'⚽ SEU JOGO',false)}${onlineGameCardV1828(friend,'👥 JOGO DO SEU AMIGO',true)}</div>
+ <div class="online-live-ticker"><h4>📣 Lances dos dois jogos</h4>${combined.length?combined.slice(0,20).map(e=>`<div class="ticker-row"><b>${e.min??0}' • ${e._label}:</b> ${e.text}</div>`).join(''):`<div class="muted">Os lances aparecerão aqui conforme o relógio avançar.</div>`}</div>`
+}
+const gameplayV1828Base=gameplay;
+gameplay=function(selectedDivision=null){
+ gameplayV1828Base(selectedDivision);
+ if(typeof MP!=='undefined'&&MP.online){
+  const clock=$('clock');
+  if(clock&&!$('onlineDualCenter')){
+   const holder=document.createElement('div');holder.id='onlineDualCenter';holder.className='online-dual-live';clock.parentElement.appendChild(holder)
+  }
+  renderOnlineDualCenterV1828()
+ }
+};
+const drawLiveV1828Base=drawLive;
+drawLive=function(){
+ drawLiveV1828Base.apply(this,arguments);
+ if(typeof MP!=='undefined'&&MP.online)renderOnlineDualCenterV1828()
+};
+</script>
+
 </body></html>

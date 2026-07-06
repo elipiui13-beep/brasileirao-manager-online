@@ -98,7 +98,22 @@ const server=http.createServer(async(req,res)=>{
       if(req.method==='GET'&&parts.length===3){return send(res,200,publicRoom(room));}
       if(req.method==='PUT'&&parts[3]==='state'){
         const b=await json(req); if(typeof b.version==='number'&&b.version<room.version-8)return send(res,409,{error:'Estado muito antigo.',room:publicRoom(room)});
-        room.state=b.state; room.version++; room.ready={};room.readyDeadline=null;room.savedAt=Date.now();room.actions=room.actions||[];room.actions.push({at:Date.now(),text:`${player.name} sincronizou e salvou a carreira.`});room.actions=room.actions.slice(-300);persist(room);return send(res,200,{version:room.version,savedAt:room.savedAt});
+        const incoming=b.state||{};
+        const current=room.state||{};
+        const isHost=t===room.hostToken;
+        const currentSeason=Number(current.season)||0,incomingSeason=Number(incoming.season)||0;
+        const currentRound=Number(current.round)||0,incomingRound=Number(incoming.round)||0;
+        const currentCompleted=Number.isFinite(Number(current.lastCompletedRound))?Number(current.lastCompletedRound):-1;
+        const incomingCompleted=Number.isFinite(Number(incoming.lastCompletedRound))?Number(incoming.lastCompletedRound):-1;
+        if(incomingSeason<currentSeason||(incomingSeason===currentSeason&&(incomingRound<currentRound||incomingCompleted<currentCompleted))){
+          return send(res,409,{error:'O estado local está em uma rodada anterior. Atualizando com o servidor.',room:publicRoom(room)});
+        }
+        if(!isHost&&current.teams){
+          incoming.season=current.season;incoming.round=current.round;incoming.lastCompletedRound=current.lastCompletedRound;incoming.lastCompletedFixtureKey=current.lastCompletedFixtureKey;incoming.schedules=current.schedules;
+          const standings=new Map((current.teams||[]).map(x=>[x.id,{played:x.played,w:x.w,d:x.d,l:x.l,gf:x.gf,ga:x.ga,pts:x.pts}]));
+          (incoming.teams||[]).forEach(x=>{const st=standings.get(x.id);if(st)Object.assign(x,st)});
+        }
+        room.state=incoming; room.version++; room.ready={};room.readyDeadline=null;room.savedAt=Date.now();room.actions=room.actions||[];room.actions.push({at:Date.now(),text:`${player.name} sincronizou e salvou a carreira.`});room.actions=room.actions.slice(-300);persist(room);return send(res,200,{version:room.version,savedAt:room.savedAt});
       }
       if(req.method==='POST'&&parts[3]==='save'){
         if(t!==room.hostToken)return send(res,403,{error:'Somente o anfitrião pode salvar a carreira.'});
@@ -106,7 +121,7 @@ const server=http.createServer(async(req,res)=>{
       }
       if(req.method==='POST'&&parts[3]==='live'){
         if(t!==room.hostToken)return send(res,403,{error:'Somente o anfitrião pode transmitir a rodada.'});
-        const b=await json(req); room.live=b.live||null; room.liveVersion=(room.liveVersion||0)+1;
+        const b=await json(req); room.live=b.live||null; room.liveVersion=(room.liveVersion||0)+1;persist(room);
         return send(res,200,{liveVersion:room.liveVersion});
       }
       if(req.method==='POST'&&parts[3]==='ready'){

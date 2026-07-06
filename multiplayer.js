@@ -56,7 +56,7 @@ function applyLiveSnapshot(snapshot){
   if(!snapshot){
     if(wasActive){if(typeof playSound==='function')playSound('whistleEnd');if(typeof stopCrowd==='function')stopCrowd()}
     MP.remoteLiveActive=false;MP.remoteEventKeys.clear();
-    if(live&&live._remote){live=null;const active=document.querySelector('nav button.active')?.dataset.v;if(active==='gameplay')render('gameplay')}
+    if(live&&live._remote){live=null;const active=document.querySelector('nav button.active')?.dataset.v;if(active==='gameplay')render('gameplay');else if(typeof refreshCurrentView==='function')refreshCurrentView()}
     return;
   }
   const oldMinute=live&&live.minute;
@@ -100,7 +100,7 @@ async function pushLive(force=false){
   if(!MP.online||!MP.host||livePushBusy)return;
   const now=Date.now();if(!force&&now-MP.lastLivePush<420)return;MP.lastLivePush=now;livePushBusy=true;
   try{
-    const snapshot=live?{minute:live.minute,games:live.games,events:live.events,speed:live.speed,paused:live.paused,active:live.active,finished:live.finished,userSubs:live.userSubs||0}:null;
+    const snapshot=live?{minute:live.minute,games:live.games,events:live.events,speed:live.speed,paused:live.paused,active:live.active,finished:live.finished,processed:!!live.processed,userSubs:live.userSubs||0,roundIndex:Number(live.roundIndex),fixtureKey:live.fixtureKey||null,season:Number(S?.season)||0}:null;
     const r=await api(`/api/rooms/${MP.code}/live`,{method:'POST',body:JSON.stringify({live:snapshot})});MP.liveVersion=r.liveVersion||MP.liveVersion;
   }catch(e){console.warn('Falha ao transmitir partida:',e.message)}finally{livePushBusy=false}
 }
@@ -137,7 +137,7 @@ function install(){
   const oldTick=window.liveTick;window.liveTick=function(){oldTick();if(MP.online&&MP.host)pushLive(false)};
   const oldPause=window.toggleLivePause;window.toggleLivePause=function(){if(MP.online&&!MP.host)return alert('Somente o anfitrião controla a pausa.');oldPause();pushLive(true)};
   const oldSpeed=window.changeLiveSpeed;window.changeLiveSpeed=function(){if(MP.online&&!MP.host)return alert('Somente o anfitrião controla a velocidade.');oldSpeed();pushLive(true)};
-  const oldFinish=window.finishRound;window.finishRound=function(){oldFinish();if(MP.online){pushLive(true);api(`/api/rooms/${MP.code}/ready`,{method:'POST',body:JSON.stringify({ready:false})}).catch(()=>{});setTimeout(()=>{pushState();pushLive(true)},300)}};
+  const oldFinish=window.finishRound;window.finishRound=function(){oldFinish();if(MP.online){pushLive(true);api(`/api/rooms/${MP.code}/ready`,{method:'POST',body:JSON.stringify({ready:false})}).catch(()=>{});if(MP.host)setTimeout(()=>pushStateNow().catch(e=>console.warn('Falha ao salvar avanço da rodada:',e.message)),80);setTimeout(()=>pushLive(true),220)}};
   window.mpToggleReady=async function(){try{if(typeof ensureAudio==='function')ensureAudio();const me=MP.players.find(p=>p.managerIndex===MP.index),r=await api(`/api/rooms/${MP.code}/ready`,{method:'POST',body:JSON.stringify({ready:!(me&&me.ready)})});applyRoom(r.room)}catch(e){alert(e.message)}};
   window.mpSaveCareer=async function(){try{if(!MP.host)return alert('Somente o anfitrião pode salvar a carreira online.');await pushStateNow();const r=await api(`/api/rooms/${MP.code}/save`,{method:'POST',body:JSON.stringify({})});storeAccess();alert(`Carreira salva com sucesso!\nSala: ${MP.code}\nVocê poderá continuar depois neste mesmo navegador.`);drawBar()}catch(e){alert('Não foi possível salvar: '+e.message)}};
   window.mpSaveSilent=async function(){try{if(MP.host){await pushStateNow();await api(`/api/rooms/${MP.code}/save`,{method:'POST',body:'{}'})}}catch(e){console.warn('Autosave online:',e.message)}};

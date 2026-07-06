@@ -85,3 +85,10 @@ V18.8:
 - v18.25: corrigida a tag JavaScript que impedia a abertura da aba Elenco e das estatísticas do time.
 
 - v18.26: os jogos dos dois técnicos e seus lances aparecem em destaque logo abaixo do relógio e atualizam ao vivo.
+
+- v18.27: a seleção de jogadores no campo agora mostra posição natural, poder e condição física.
+
+- v18.28: central online fixada abaixo do relógio, com jogo do usuário, jogo do amigo e lances combinados dos dois jogos.
+
+- v18.29: avanço de rodada passa a usar a primeira rodada realmente não disputada no calendário.
+- v18.29: impede reutilização da mesma combinação de jogos e sincroniza número/identificador da rodada no multiplayer.
