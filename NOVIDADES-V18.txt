@@ -1,3 +1,18 @@
+VERSÃO 18.44
+
+- Corrigida a lentidão/travamento na preparação tática após muitas rodadas.
+- Táticas da IA rebalanceadas, com menos excesso defensivo.
+- Média de gols ajustada para uma faixa mais realista.
+- Mercado da IA mais ativo e orientado às carências do elenco.
+- Transferências preservam profundidade do elenco e saúde financeira.
+
+VERSÃO 18.43
+- Corrigido erro ensureRoles que impedia o início das partidas.
+- 5-3-2 agora usa dois volantes e se diferencia do 3-5-2.
+- IA passou a considerar Posse de bola nas escolhas táticas.
+- Artilheiro e líder de assistências agora exigem participação mínima.
+- Escalação e cobradores da IA foram reforçados.
+
 BRASILEIRÃO MANAGER v18.1 — EXPANSÃO MANAGER TOTAL
 
 Base oficial: v17.12.
@@ -92,3 +107,91 @@ V18.8:
 
 - v18.29: avanço de rodada passa a usar a primeira rodada realmente não disputada no calendário.
 - v18.29: impede reutilização da mesma combinação de jogos e sincroniza número/identificador da rodada no multiplayer.
+V18.30
+- Lances mais recentes agora aparecem sempre no topo na aba Jogo.
+- Ordem invertida no painel da Série, no seu jogo, no jogo do amigo e na lista unificada.
+- Eventos no mesmo minuto respeitam a ordem real de chegada, mostrando o mais novo primeiro.
+
+
+V18.31
+- Novo filtro no mercado nacional: disponíveis para compra, listados ou todos.
+- O filtro de disponíveis vem ativado por padrão.
+- Jogadores indisponíveis exibem o motivo e não permitem clicar em Comprar.
+- A regra de disponibilidade agora é a mesma na busca e na tentativa de compra.
+
+
+V18.32
+- Sincronização por revisão individual de cada clube.
+- Investimentos em base/olheiros não são mais apagados por estados antigos da sala.
+- Salvamento online mais rápido e serializado para evitar corridas de atualização.
+
+V18.33 — Salvamento local e sincronização segura
+- O salvamento automático comum agora grava somente no navegador.
+- A carreira completa não é mais enviada ao servidor a cada atualização de tela.
+- Sincronização online ocorre apenas em momentos seguros: investimentos, transferências, melhorias, fim de rodada e botão Salvar carreira.
+- Criado stateVersion separado da versão de sala: prontidão, chat e atualizações visuais não recarregam mais um estado antigo da carreira.
+- O polling continua atualizando placares e informações online sem sobrescrever alterações locais em andamento.
+
+
+V18.34 — PROPOSTAS INDIVIDUAIS
+- Cada técnico recebe propostas próprias.
+- O mesmo clube não pode manter proposta ativa simultânea para os dois técnicos.
+- Aceitar proposta atribui o clube ao técnico correto.
+- Saves antigos são migrados automaticamente.
+
+
+V18.35 — PAINEL FINANCEIRO SIMPLIFICADO
+- Caixa, receitas, despesas e resultado acumulado em destaque.
+- Entradas e saídas separadas em duas colunas.
+- Empréstimos separados das receitas e vinculados à dívida.
+- Explicações simples para cada indicador.
+- Layout responsivo para celular.
+
+
+V18.36 — REVISÃO GERAL E REMOÇÃO DO CHAT
+- Aba Chat e funções de mensagens removidas da interface e do servidor.
+- Corrigido o estado Pronto: salvar ou sincronizar a carreira não cancela mais a prontidão.
+- Revisão dos manipuladores de tela, JavaScript, multiplayer, calendário e arquivos estáticos.
+- Versão e descrição do package.json atualizadas.
+
+
+V18.37 — EQUILÍBRIO FINANCEIRO DAS SÉRIES B E C
+- Direitos de transmissão por rodada: Série B R$ 560 mil; Série C R$ 300 mil.
+- Patrocínio anual mínimo: Série B R$ 9,5 mi; Série C R$ 4,8 mi.
+- Bônus por resultado: B R$ 220 mil/vitória e R$ 80 mil/empate; C R$ 120 mil/vitória e R$ 45 mil/empate.
+- Boa fase passa a aumentar o público e a renda dos jogos em casa.
+- Custos administrativos, de base e folha complementar foram reduzidos nas divisões inferiores.
+
+
+V18.38 — CONTROLES DO HOST E LANCES MAIS NOVOS NO TOPO
+- Botões Pausar e Velocidade ficam visíveis apenas para o host no multiplayer.
+- Convidado acompanha o relógio sem controles de partida.
+- Lances dos dois jogos agora são ordenados por minuto e ordem de chegada, mais novos primeiro.
+- Corrigida a ordem também nos cartões individuais e nos painéis de eventos.
+
+
+V18.39 — JOGO DO CONVIDADO VISÍVEL PARA O HOST
+- Entrada do convidado agora aumenta a versão do estado da carreira e atualiza o host imediatamente.
+- Central online localiza o time do amigo também pelos dados da sala, com fallback seguro.
+- Ao terminar a rodada, o convidado recebe botão para voltar ao início.
+- Busca da partida encerrada usa a rodada real da transmissão, evitando procurar a rodada seguinte.
+
+
+V18.40 — BANNER ÚNICO E PRONTIDÃO REINICIADA
+- Removida a duplicação da mensagem de rodada concluída no multiplayer.
+- Ao terminar a rodada, o host limpa a prontidão dos dois jogadores no servidor.
+- Ambos precisam marcar Estou pronto novamente antes da próxima rodada.
+
+V18.41 — REMOÇÃO DO CRONÔMETRO VISUAL DE PRONTIDÃO
+- Removido o contador “Xs para confirmar” do painel superior da sala multiplayer.
+- A alteração é apenas visual e não afeta a sincronização, a prontidão ou o início das partidas.
+
+
+
+V18.42 — TÁTICAS DINÂMICAS E PRÊMIOS INDIVIDUAIS
+- Times controlados pela IA agora escolhem formação e tática antes de cada rodada.
+- A formação considera o elenco disponível e o encaixe dos jogadores.
+- A tática considera força do adversário, mando de campo, condição física e formação escolhida.
+- Cada Série A, B e C premia melhor média, artilheiro e líder de assistências.
+- Valores por prêmio: Série A R$ 5 mi; Série B R$ 2 mi; Série C R$ 1 mi.
+- O valor entra no caixa e no painel financeiro do clube vencedor.

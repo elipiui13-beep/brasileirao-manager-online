@@ -120,7 +120,7 @@ function makeObjectives(t){
  arr.push(Math.random()<.5?'Chegar à semifinal da Copa do Brasil':'Usar ao menos 3 jogadores da base');if(monthlyPayroll(t)>Math.max(1500000,t.cash/18))arr.push('Reduzir a folha salarial');return arr.slice(0,3)
 }
 function ensureExpansion(){
- if(!S)return;S.expansionVersion=XVER;rebalanceInternationalMarket();S.actionLog=S.actionLog||[];S.hallOfFame=S.hallOfFame||[];S.managerRankings=S.managerRankings||[];S.competitions=S.competitions||{};S.formHistory=S.formHistory||{};S.awards=S.awards||[];S.chat=S.chat||[];S.managerResultKeys=S.managerResultKeys||{};
+ if(!S)return;S.expansionVersion=XVER;rebalanceInternationalMarket();S.actionLog=S.actionLog||[];S.hallOfFame=S.hallOfFame||[];S.managerRankings=S.managerRankings||[];S.competitions=S.competitions||{};S.formHistory=S.formHistory||{};S.awards=S.awards||[];S.managerResultKeys=S.managerResultKeys||{};
  (S.managers||[]).forEach(ensureManager);
  S.teams.forEach(t=>{t.form=t.form||[];ensureDebtPlan(t);t.promotedLastSeason=!!t.promotedLastSeason;t.academy=t.academy||{level:1,prospects:[],lastScoutRound:-9};t.academy.investment=Math.max(0,Number(t.academy.investment)||0);t.academy.graduates=t.academy.graduates||[];t.academy.annualTrialSeason=t.academy.annualTrialSeason||0;t.board=t.board||{confidence:60,startCash:t.cash,targets:[]};if(!t.board.targets?.length)t.board.targets=makeObjectives(t);t.players.forEach(p=>{p.history=p.history||[{season:S.season,rating:p.rating,value:p.value}];p.fromAcademy=!!p.fromAcademy;p.potential=p.potential||Math.min(94,p.rating+rand(2,10));p.cards=p.cards||0})});
  initCompetitions();

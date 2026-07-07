@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const MP={code:null,token:null,index:0,version:0,liveVersion:0,host:false,poll:null,applying:false,online:false,players:[],allReady:false,lastLivePush:0,installed:false,remoteEventKeys:new Set(),remoteLiveActive:false};
+const MP={code:null,token:null,index:0,version:0,liveVersion:0,host:false,poll:null,applying:false,online:false,players:[],allReady:false,lastLivePush:0,installed:false,remoteEventKeys:new Set(),remoteLiveActive:false,teamFingerprints:new Map(),statePushBusy:false,statePushQueued:false,stateVersion:0,dirty:false,safeSyncInstalled:false};
 window.MP=MP;
 const api=(path,opt={})=>fetch(path,{...opt,headers:{'Content-Type':'application/json',...(MP.token?{'X-Player-Token':MP.token}:{}),...(opt.headers||{})}}).then(async r=>{const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Falha de conexão');return j});
 function cTeams(){return (typeof DB!=='undefined'?DB:[]).filter(t=>t.division==='C')}
@@ -20,7 +20,7 @@ function overlay(){
   #mpTop .mp-summary{background:#0c1729;border:1px solid #4a76bd;border-radius:11px;padding:6px 9px;box-shadow:0 5px 14px #0004}
   #mpTop .mp-room{font-size:11px;opacity:.8}.mp-status{display:flex;flex-direction:column;align-items:flex-start;gap:4px;margin-top:5px;font-size:12px}.mp-status-line{display:block}.mp-ok{color:#79e89a;font-weight:800}.mp-wait{color:#ffd36b;font-weight:800}
   #mpTop .mp-actions{display:flex;gap:6px;align-items:center}#mpTop button{border:0;border-radius:9px;cursor:pointer;font-weight:900;min-height:34px;padding:7px 11px}
-  .mp-inline-actions{display:inline-flex;flex-direction:row;gap:2cm!important;align-items:center;flex-wrap:nowrap}.mp-inline-actions>button{width:auto}.mp-inline-ready{border:0!important;border-radius:12px!important;cursor:pointer;font-weight:900;min-height:44px;padding:10px 16px;color:#fff!important;font-size:15px;line-height:1}.mp-inline-ready.not-ready{background:#dc2626!important;background-image:linear-gradient(135deg,#b91c1c,#ef4444)!important;box-shadow:0 6px 18px #991b1b66!important}.mp-inline-ready.ready{background:#16a34a!important;background-image:linear-gradient(135deg,#15803d,#22c55e)!important;box-shadow:0 6px 18px #16653466!important}.mp-inline-ready:hover{filter:brightness(1.05)}.mp-inline-actions button[onclick*="startLive"]{margin-top:4px!important}.mp-save-btn{background:#2563eb!important;color:#fff!important;border:0;border-radius:9px;padding:7px 11px;font-weight:900;cursor:pointer}.mp-chat-page{height:min(620px,calc(100vh - 245px));min-height:360px;display:flex;flex-direction:column;background:#0b1527;border:1px solid #33466b;border-radius:12px;padding:14px;overflow:hidden}.mp-chat-page h2{margin:0 0 10px}.mp-chat-page .mp-chat-log{flex:1 1 auto;min-height:0;overflow-y:auto;padding:10px;background:#071020;border:1px solid #243657;border-radius:9px;font-size:14px}.mp-chat-message{padding:5px 3px;border-bottom:1px solid #ffffff10;overflow-wrap:anywhere}.mp-chat-send{display:flex;gap:8px;flex:0 0 auto;margin-top:10px}.mp-chat-send input{flex:1;background:#071020;color:#fff;border:1px solid #42577e;border-radius:7px;padding:10px;min-width:0}.mp-chat-send button{flex:0 0 auto}.mp-actions-log{flex:0 0 auto;max-height:90px;overflow-y:auto;display:flex;flex-direction:column;gap:3px;opacity:.72;margin-top:9px;border-top:1px solid #243657;padding-top:7px}@media(max-width:600px){.mp-chat-page{height:calc(100vh - 220px);min-height:330px;padding:9px}.mp-chat-send{gap:5px}.mp-chat-send input{padding:9px}}}
+  .mp-inline-actions{display:inline-flex;flex-direction:row;gap:2cm!important;align-items:center;flex-wrap:nowrap}.mp-inline-actions>button{width:auto}.mp-inline-ready{border:0!important;border-radius:12px!important;cursor:pointer;font-weight:900;min-height:44px;padding:10px 16px;color:#fff!important;font-size:15px;line-height:1}.mp-inline-ready.not-ready{background:#dc2626!important;background-image:linear-gradient(135deg,#b91c1c,#ef4444)!important;box-shadow:0 6px 18px #991b1b66!important}.mp-inline-ready.ready{background:#16a34a!important;background-image:linear-gradient(135deg,#15803d,#22c55e)!important;box-shadow:0 6px 18px #16653466!important}.mp-inline-ready:hover{filter:brightness(1.05)}.mp-inline-actions button[onclick*="startLive"]{margin-top:4px!important}.mp-save-btn{background:#2563eb!important;color:#fff!important;border:0;border-radius:9px;padding:7px 11px;font-weight:900;cursor:pointer}}
   .mp-live-badge{display:inline-flex;align-items:center;gap:7px;background:#9c1d2c;color:#fff;border-radius:999px;padding:4px 8px;font-weight:900;font-size:11px;animation:mpPulse 1.2s infinite}.mp-finished-alert{background:linear-gradient(135deg,#f59e0b,#facc15);color:#261800;border:2px solid #fff7;padding:9px 12px;border-radius:10px;font-weight:1000;box-shadow:0 5px 18px #0006;cursor:pointer}.mp-finished-alert:hover{filter:brightness(1.04)}
   @keyframes mpPulse{50%{opacity:.65}}@media(max-width:760px){#mpLobby .row{grid-template-columns:1fr}main#game header{align-items:flex-start;flex-wrap:wrap}#mpTop{width:100%;justify-content:flex-start}#mpTop .mp-summary{width:100%}.mp-inline-actions{width:100%;gap:2cm!important;justify-content:flex-start}.mp-inline-ready{flex:0 0 auto}}
   </style><div class="box"><h1>🌐 Brasileirão Manager Online</h1><p class="muted">Crie uma carreira ou entre usando o código enviado pelo seu amigo.</p><div class="row"><section><h2>Criar sala</h2><input id="mpCreateName" placeholder="Seu login"><input id="mpCreatePass" type="password" placeholder="Crie uma senha"><div class="muted" style="margin:4px 0 14px">Seu clube será sorteado aleatoriamente entre os times da Série C.</div><button id="mpCreate">Criar carreira online</button></section><section><h2>Entrar na sala</h2><input id="mpCode" maxlength="6" placeholder="Código da sala"><input id="mpJoinName" placeholder="Seu login"><input id="mpJoinPass" type="password" placeholder="Sua senha"><div class="muted" style="margin:4px 0 14px">Você receberá outro clube aleatório da Série C.</div><button id="mpJoin">Entrar na carreira</button></section></div><p id="mpMsg" class="err"></p><div id="mpResumeBox"></div><hr><button id="mpSolo" style="background:#47556d">Continuar no modo individual</button></div>`;document.body.appendChild(el);
@@ -85,16 +85,38 @@ function applyLiveSnapshot(snapshot){
     drawBar();
   }
 }
-function applyRoom(room,forceState=false){if(!room)return;const stateChanged=forceState||room.version>MP.version;MP.version=Math.max(MP.version,room.version||0);MP.players=room.players||[];MP.chat=room.chat||[];MP.actions=room.actions||[];MP.readyDeadline=room.readyDeadline||null;MP.allReady=MP.players.length===2&&MP.players.every(p=>p.ready);if(stateChanged&&room.state){MP.applying=true;S=room.state;S.turn=MP.index;MP.applying=false;}if((room.liveVersion||0)>MP.liveVersion||forceState){MP.liveVersion=room.liveVersion||0;applyLiveSnapshot(room.live||null)}drawBar();if(stateChanged&&document.getElementById('game')&&!document.getElementById('game').classList.contains('hidden')){const active=document.querySelector('nav button.active')?.dataset.v||'home';if(active!=='gameplay'||!live||!live.active){setTimeout(()=>{if(typeof refreshCurrentView==='function')refreshCurrentView();else render(active)},0)}}}
+function teamFingerprint(t){
+  if(!t)return'';
+  const copy={...t};delete copy._syncRev;delete copy._syncBy;
+  try{return JSON.stringify(copy)}catch{return String(t.id||'')}
+}
+function refreshTeamFingerprints(){
+  MP.teamFingerprints=new Map((S?.teams||[]).map(t=>[t.id,teamFingerprint(t)]));
+}
+function markChangedTeams(){
+  const now=Date.now();
+  (S?.teams||[]).forEach(t=>{
+    const fp=teamFingerprint(t),old=MP.teamFingerprints.get(t.id);
+    if(old!==undefined&&fp!==old){t._syncRev=Math.max(now,Number(t._syncRev)||0);t._syncBy=MP.index}
+  });
+}
+function applyRoom(room,forceState=false){if(!room)return;const remoteStateVersion=Number(room.stateVersion)||0;const stateChanged=forceState||remoteStateVersion>MP.stateVersion;MP.version=Math.max(MP.version,room.version||0);MP.players=room.players||[];MP.actions=room.actions||[];MP.readyDeadline=room.readyDeadline||null;MP.allReady=MP.players.length===2&&MP.players.every(p=>p.ready);if(stateChanged&&room.state){MP.applying=true;S=room.state;S.turn=MP.index;MP.applying=false;MP.stateVersion=Math.max(MP.stateVersion,remoteStateVersion);MP.dirty=false;refreshTeamFingerprints();saveLocal();}if((room.liveVersion||0)>MP.liveVersion||forceState){MP.liveVersion=room.liveVersion||0;applyLiveSnapshot(room.live||null)}drawBar();if(stateChanged&&document.getElementById('game')&&!document.getElementById('game').classList.contains('hidden')){const active=document.querySelector('nav button.active')?.dataset.v||'home';if(active!=='gameplay'||!live||!live.active){setTimeout(()=>{if(typeof refreshCurrentView==='function')refreshCurrentView();else render(active)},0)}}}
 function saveLocal(){try{if(typeof trimNewsHistory==='function')trimNewsHistory();localStorage.setItem('brCareerV12',JSON.stringify(S))}catch{}}
 let saveTimer=null;
 async function pushStateNow(){
   if(!MP.online||MP.applying||!S)return;
-  clearTimeout(saveTimer);S.turn=MP.index;
-  const r=await api(`/api/rooms/${MP.code}/state`,{method:'PUT',body:JSON.stringify({version:MP.version,state:S})});
-  MP.version=r.version;saveLocal();drawBar();return r;
+  if(MP.statePushBusy){MP.statePushQueued=true;return}
+  clearTimeout(saveTimer);markChangedTeams();S.turn=MP.index;MP.statePushBusy=true;
+  try{
+    const snapshot=JSON.parse(JSON.stringify(S));
+    const r=await api(`/api/rooms/${MP.code}/state`,{method:'PUT',body:JSON.stringify({version:MP.version,state:snapshot})});
+    MP.version=r.version;MP.stateVersion=Math.max(MP.stateVersion,Number(r.stateVersion)||0);MP.dirty=false;saveLocal();refreshTeamFingerprints();drawBar();return r;
+  }finally{
+    MP.statePushBusy=false;
+    if(MP.statePushQueued){MP.statePushQueued=false;setTimeout(()=>pushStateNow().catch(e=>console.warn('Falha ao sincronizar:',e.message)),0)}
+  }
 }
-function pushState(){if(!MP.online||MP.applying||!S)return;clearTimeout(saveTimer);saveTimer=setTimeout(()=>pushStateNow().catch(e=>console.warn('Falha ao sincronizar:',e.message)),180)}
+function pushState(){if(!MP.online||MP.applying||!S)return;clearTimeout(saveTimer);markChangedTeams();MP.dirty=true;saveLocal()}
 let livePushBusy=false;
 async function pushLive(force=false){
   if(!MP.online||!MP.host||livePushBusy)return;
@@ -128,33 +150,39 @@ function enhanceGameButtons(){
     if(MP.host){wrap.style.setProperty('display','inline-flex','important');wrap.style.setProperty('flex-direction','row','important');wrap.style.setProperty('gap','2cm','important');wrap.style.setProperty('align-items','center','important');wrap.style.setProperty('flex-wrap','nowrap','important');btn.style.setProperty('margin-top','0','important')}
   });
 }
+function stateSignature(){try{return JSON.stringify({season:S?.season,round:S?.round,lastCompletedRound:S?.lastCompletedRound,team:teamFingerprint(team(manager().team)),manager:manager()})}catch{return String(Date.now())}}
+async function syncSafeMoment(reason='alteração importante'){
+  if(!MP.online||MP.applying||!S)return;
+  markChangedTeams();MP.dirty=true;saveLocal();
+  try{await pushStateNow();if(typeof window.mpLogAction==='function')window.mpLogAction(`Sincronização segura: ${reason}.`)}catch(e){console.warn(`Falha ao sincronizar ${reason}:`,e.message)}
+}
+window.mpSyncSafe=syncSafeMoment;
+function installSafeSyncHooks(){
+  if(MP.safeSyncInstalled)return;MP.safeSyncInstalled=true;
+  const names={investAcademy:'investimento na base',upgradeAcademy:'melhoria da base',upgradeStadium:'melhoria do estádio',scoutYouth:'relatório dos olheiros',buy:'compra de jogador',buyForeign:'compra internacional',sellNow:'venda de jogador',sellProspect:'venda de promessa',promoteYouth:'promoção da base',renewContract:'renovação de contrato',acceptOffer:'troca de clube'};
+  Object.entries(names).forEach(([name,label])=>{
+    const original=window[name];if(typeof original!=='function'||original._mpSafeWrapped)return;
+    const wrapped=function(){const before=stateSignature(),result=original.apply(this,arguments);setTimeout(()=>{if(stateSignature()!==before)syncSafeMoment(label)},60);return result};
+    wrapped._mpSafeWrapped=true;window[name]=wrapped;
+  });
+}
 function install(){
   if(MP.installed)return;MP.installed=true;
-  const oldSave=window.save;window.save=function(){saveLocal();if(MP.online)pushState();else if(oldSave)oldSave();};
+  const oldSave=window.save;window.save=function(){if(MP.online){markChangedTeams();MP.dirty=true;saveLocal();return true}return oldSave?oldSave():saveLocal()};
   window.manager=function(){return S.managers[MP.online?MP.index:S.turn]};
   const oldHeader=window.header;window.header=function(){S.turn=MP.online?MP.index:S.turn;oldHeader();drawBar()};
   const oldStart=window.startLive;window.startLive=function(){MP.matchFinishedNotice=null;if(!MP.online)return oldStart();if(!MP.host)return alert('O anfitrião inicia a rodada quando os dois estiverem prontos. Você acompanhará tudo ao vivo.');if(!MP.allReady)return alert('Os dois técnicos precisam marcar “Estou pronto” para iniciar a rodada.');oldStart();setTimeout(()=>pushLive(true),80)};
   const oldTick=window.liveTick;window.liveTick=function(){oldTick();if(MP.online&&MP.host)pushLive(false)};
   const oldPause=window.toggleLivePause;window.toggleLivePause=function(){if(MP.online&&!MP.host)return alert('Somente o anfitrião controla a pausa.');oldPause();pushLive(true)};
   const oldSpeed=window.changeLiveSpeed;window.changeLiveSpeed=function(){if(MP.online&&!MP.host)return alert('Somente o anfitrião controla a velocidade.');oldSpeed();pushLive(true)};
-  const oldFinish=window.finishRound;window.finishRound=function(){oldFinish();if(MP.online){pushLive(true);api(`/api/rooms/${MP.code}/ready`,{method:'POST',body:JSON.stringify({ready:false})}).catch(()=>{});if(MP.host)setTimeout(()=>pushStateNow().catch(e=>console.warn('Falha ao salvar avanço da rodada:',e.message)),80);setTimeout(()=>pushLive(true),220)}};
+  const oldFinish=window.finishRound;window.finishRound=function(){oldFinish();if(MP.online){pushLive(true);if(MP.host){api(`/api/rooms/${MP.code}/ready-reset`,{method:'POST',body:JSON.stringify({})}).then(r=>{if(r.room)applyRoom(r.room)}).catch(e=>console.warn('Falha ao limpar prontidão:',e.message));setTimeout(()=>pushStateNow().catch(e=>console.warn('Falha ao salvar avanço da rodada:',e.message)),80)}setTimeout(()=>pushLive(true),220)}};
   window.mpToggleReady=async function(){try{if(typeof ensureAudio==='function')ensureAudio();const me=MP.players.find(p=>p.managerIndex===MP.index),r=await api(`/api/rooms/${MP.code}/ready`,{method:'POST',body:JSON.stringify({ready:!(me&&me.ready)})});applyRoom(r.room)}catch(e){alert(e.message)}};
   window.mpSaveCareer=async function(){try{if(!MP.host)return alert('Somente o anfitrião pode salvar a carreira online.');await pushStateNow();const r=await api(`/api/rooms/${MP.code}/save`,{method:'POST',body:JSON.stringify({})});storeAccess();alert(`Carreira salva com sucesso!\nSala: ${MP.code}\nVocê poderá continuar depois neste mesmo navegador.`);drawBar()}catch(e){alert('Não foi possível salvar: '+e.message)}};
-  window.mpSaveSilent=async function(){try{if(MP.host){await pushStateNow();await api(`/api/rooms/${MP.code}/save`,{method:'POST',body:'{}'})}}catch(e){console.warn('Autosave online:',e.message)}};
-  window.mpSendChat=async function(){try{let i=document.getElementById('mpChatInput'),text=(i?.value||MP.chatDraft||'').trim();if(!text)return;const r=await api(`/api/rooms/${MP.code}/chat`,{method:'POST',body:JSON.stringify({text})});MP.chat=r.chat||[];MP.chatDraft='';drawBar();window.mpRenderChat?.();setTimeout(()=>document.getElementById('mpChatInput')?.focus(),0)}catch(e){alert(e.message)}};
+  window.mpSaveSilent=async function(){saveLocal();return true};
   window.mpLogAction=function(text){api(`/api/rooms/${MP.code}/action`,{method:'POST',body:JSON.stringify({text})}).catch(()=>{})};
+  installSafeSyncHooks();
   const observer=new MutationObserver(()=>enhanceGameButtons());observer.observe(document.body,{childList:true,subtree:true});setTimeout(enhanceGameButtons,0);
 }
-window.mpRenderChat=function(){
-  const c=document.getElementById('content');if(!c)return;
-  if(!MP.online){c.innerHTML='<div class="card"><h2>Chat</h2><p class="muted">O chat fica disponível quando você entra em uma sala multiplayer.</p></div>';return}
-  const esc=v=>String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-  const input=document.getElementById('mpChatInput'),wasFocused=document.activeElement===input;
-  if(input)MP.chatDraft=input.value;
-  c.innerHTML=`<div class="mp-chat-page"><h2>💬 Chat da sala ${esc(MP.code)}</h2><div id="mpChatLog" class="mp-chat-log">${(MP.chat||[]).slice(-100).reverse().map(x=>`<div class="mp-chat-message"><b>${esc(x.name)}:</b> ${esc(x.text)}</div>`).join('')||'<span class="muted">Sem mensagens.</span>'}</div><div class="mp-chat-send"><input id="mpChatInput" maxlength="300" placeholder="Digite uma mensagem" value="${esc(MP.chatDraft||'')}" oninput="MP.chatDraft=this.value" onkeydown="if(event.key==='Enter'){event.preventDefault();mpSendChat()}"><button class="btn primary" onclick="mpSendChat()">Enviar</button></div><div class="mp-actions-log">${(MP.actions||[]).slice(-8).reverse().map(x=>`<small>${esc(x.text)}</small>`).join('')}</div></div>`;
-  const log=document.getElementById('mpChatLog');if(log)log.scrollTop=log.scrollHeight;
-  const ni=document.getElementById('mpChatInput');if(ni&&(wasFocused||!MP.chatDraft))setTimeout(()=>{ni.focus();ni.setSelectionRange(ni.value.length,ni.value.length)},0);
-};
 function appendFinishedAlert(){
   if(!MP.matchFinishedNotice||!MP.matchFinishedNotice.finished)return;
   const top=document.getElementById('mpTop');
@@ -174,12 +202,12 @@ function drawBar(){
     let b=document.getElementById('mpTop');
     if(!b){b=document.createElement('div');b.id='mpTop';header.appendChild(b)}
     const me=MP.players.find(p=>p.managerIndex===MP.index),other=MP.players.find(p=>p.managerIndex!==MP.index),isLive=!!(typeof live!=='undefined'&&live&&live.active);
-    const left=MP.readyDeadline?Math.max(0,Math.ceil((MP.readyDeadline-Date.now())/1000)):0;const html=`<div class="mp-summary"><div><b>🌐 Sala ${MP.code}</b> <span class="mp-room">${MP.host?'• Anfitrião':'• Conectado'}</span> ${isLive?'<span class="mp-live-badge">● AO VIVO</span>':''}</div><div class="mp-status"><div class="mp-status-line ${me&&me.ready?'mp-ok':'mp-wait'}">Você: ${me&&me.ready?'✓ Pronto':'○ Não pronto'}</div><div class="mp-status-line ${other&&other.ready?'mp-ok':'mp-wait'}">${other?other.name:'Aguardando amigo'}: ${other?(other.ready?'✓ Pronto':'○ Não pronto'):'—'}</div>${left?`<div class="mp-status-line">⏱️ ${left}s para confirmar</div>`:''}</div></div>${MP.host?'<div class="mp-actions"><button class="mp-save-btn" onclick="mpSaveCareer()">💾 Salvar carreira</button></div>':''}`;
-    if(b.innerHTML!==html)b.innerHTML=html;if(document.querySelector('nav button.active')?.dataset.v==='chat')window.mpRenderChat?.();
+    const left=MP.readyDeadline?Math.max(0,Math.ceil((MP.readyDeadline-Date.now())/1000)):0;const html=`<div class="mp-summary"><div><b>🌐 Sala ${MP.code}</b> <span class="mp-room">${MP.host?'• Anfitrião':'• Conectado'}</span> ${isLive?'<span class="mp-live-badge">● AO VIVO</span>':''}</div><div class="mp-status"><div class="mp-status-line ${me&&me.ready?'mp-ok':'mp-wait'}">Você: ${me&&me.ready?'✓ Pronto':'○ Não pronto'}</div><div class="mp-status-line ${other&&other.ready?'mp-ok':'mp-wait'}">${other?other.name:'Aguardando amigo'}: ${other?(other.ready?'✓ Pronto':'○ Não pronto'):'—'}</div></div></div>${MP.host?'<div class="mp-actions"><button class="mp-save-btn" onclick="mpSaveCareer()">💾 Salvar carreira</button></div>':''}`;
+    if(b.innerHTML!==html)b.innerHTML=html;
     setTimeout(enhanceGameButtons,0);
   }catch(e){console.warn('Falha ao desenhar painel online:',e)}
 }
-function startPoll(){clearInterval(MP.poll);MP.poll=setInterval(async()=>{if(!MP.online||document.hidden)return;try{const r=await api(`/api/rooms/${MP.code}`);const changed=r.version>MP.version||(r.liveVersion||0)>MP.liveVersion;applyRoom(r,changed&&r.version>MP.version);if(changed)saveLocal()}catch(e){console.warn(e.message)}},650)}
+function startPoll(){clearInterval(MP.poll);MP.poll=setInterval(async()=>{if(!MP.online||document.hidden)return;try{const r=await api(`/api/rooms/${MP.code}`);const changed=r.version>MP.version||(r.liveVersion||0)>MP.liveVersion||(Number(r.stateVersion)||0)>MP.stateVersion;applyRoom(r,false);if(changed)saveLocal()}catch(e){console.warn(e.message)}},650)}
 async function resume(showError=false){
   try{
     const x=getSavedAccess();if(!x)return false;

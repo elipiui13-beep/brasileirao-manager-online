@@ -1,8 +1,8 @@
 {
   "name": "brasileirao-manager-online",
-  "version": "18.29.0",
+  "version": "18.44.0",
   "private": true,
-  "description": "Brasileirão Manager com avanço de rodada protegido contra repetição de partidas.",
+  "description": "Brasileirão Manager online com sincronização segura, prontidão persistente e interface revisada.",
   "scripts": {
     "start": "node server.js"
   },
